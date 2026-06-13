@@ -41,10 +41,10 @@ test:  ## run tests
 
 # ===== docker / deploy (NO venv — image installs deps directly) =====
 # Override on the CLI, e.g.  make deploy PROJECT=my-gcp-proj MODEL_URI=gs://bucket/model.pkl
-PROJECT   ?= macrocosm
+PROJECT   ?= macrocosm-lewagon
 REGION    ?= europe-west1
 SERVICE   ?= macrocosm-backend
-MODEL_URI ?= gs://macrocosm-artifacts/models/model.pkl
+MODEL_URI ?= gs://macrocosm-lewagon/models/model.pkl
 
 # Artifact Registry image coordinates:  REGION-docker.pkg.dev/PROJECT/REPO/IMAGE:TAG
 AR_REPO        ?= macrocosm
