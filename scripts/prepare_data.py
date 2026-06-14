@@ -39,6 +39,9 @@ from astropy.coordinates import SkyCoord
 
 warnings.simplefilter("ignore", FITSFixedWarning)
 
+# Default is the INTERACTIVE-container mount. In a Compute Job the same data
+# volume mounts under its display name, e.g. "/home/idies/workspace/SDSS SAS"
+# (with a space) — override with --sas in that case.
 SAS = "/home/idies/workspace/sdss_sas"
 BANDS = "ugriz"
 RERUN = 301
@@ -55,9 +58,9 @@ _SIZE = 64
 _DTYPE = "float16"
 
 
-def _init(size, dtype):
-    global _SIZE, _DTYPE
-    _SIZE, _DTYPE = size, dtype
+def _init(size, dtype, sas):
+    global _SIZE, _DTYPE, SAS
+    _SIZE, _DTYPE, SAS = size, dtype, sas
 
 
 def cut_group(group):
@@ -111,6 +114,9 @@ def main():
     ap.add_argument("--size", type=int, default=64, help="stamp size px (default 64)")
     ap.add_argument("--dtype", default="float16", choices=["float16", "float32"],
                     help="stored pixel dtype (default float16, half the bytes)")
+    ap.add_argument("--sas", default=SAS,
+                    help=f"SDSS SAS mount point (default {SAS}; in a Compute Job "
+                         "this is usually '/home/idies/workspace/SDSS SAS')")
     ap.add_argument("--workers", type=int, default=4, help="parallel processes")
     ap.add_argument("--bucket", default="macrocosm-lewagon")
     ap.add_argument("--prefix", default="data/sample_v1")
@@ -118,6 +124,9 @@ def main():
     ap.add_argument("--force", action="store_true", help="rebuild even if output exists")
     args = ap.parse_args()
     assert 0 <= args.shard < args.n_shards, "shard out of range"
+
+    global SAS
+    SAS = args.sas
 
     from google.cloud import storage
     client = storage.Client.from_service_account_json(args.key)
@@ -151,7 +160,7 @@ def main():
     out = np.zeros((end - start, args.size, args.size, len(BANDS)), dtype=args.dtype)
     done = miss = 0
     t0 = time.time()
-    with Pool(args.workers, initializer=_init, initargs=(args.size, args.dtype)) as pool:
+    with Pool(args.workers, initializer=_init, initargs=(args.size, args.dtype, args.sas)) as pool:
         for res in pool.imap_unordered(cut_group, groups, chunksize=1):
             for idx, stamp in res:
                 if stamp is None:
