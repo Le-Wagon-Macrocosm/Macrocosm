@@ -126,6 +126,7 @@ def main():
     df = load_catalog(args.catalog, args.key)
     df = df.sort_values("idx").reset_index(drop=True)
     n = len(df)
+    print(f"[shard {args.shard}] catalog has {n:,} galaxies total")
 
     # contiguous block for this shard
     size = (n + args.n_shards - 1) // args.n_shards
@@ -166,10 +167,9 @@ def main():
     ng = end - start
     print(f"[shard {args.shard}] cut {ng:,} galaxies from {len(groups):,} frames "
           f"in {el:.0f}s ({ng / el:.1f} gal/s, {len(groups) / el:.1f} frames/s)")
-    # full-build projection at this rate, single 4-worker container:
-    full = 892_536
-    print(f"[shard {args.shard}] => full {full:,} galaxies ≈ "
-          f"{full / (ng / el) / 3600:.1f} h on one container at this rate")
+    # full-build projection at this rate, on this one container:
+    print(f"[shard {args.shard}] => full {n:,} galaxies ≈ "
+          f"{n / (ng / el) / 3600:.1f} h on one container at this rate")
     if miss:
         print(f"[shard {args.shard}] WARNING: {miss} galaxies had a missing/broken "
               f"frame -> zero-filled stamps")
