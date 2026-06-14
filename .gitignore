@@ -1,0 +1,21 @@
+# python (local venv — local testing only, never committed/deployed)
+.venv/
+__pycache__/
+*.py[cod]
+
+# node
+node_modules/
+frontend/dist/
+
+# env / secrets
+.env
+
+# data / model artifacts (live in GCS, not git)
+*.npy
+*.npz
+*.parquet
+models/
+
+# os / editor
+.DS_Store
+.obsidian/
