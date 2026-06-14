@@ -62,8 +62,9 @@ def main():
     ap.add_argument("--domain", default=None, help="jobs domain name (default: first available)")
     ap.add_argument("--image", default=None, help="job docker image name (see --discover)")
     ap.add_argument("--data-volume", default="SDSS SAS", help="SDSS data volume name (see --discover)")
-    ap.add_argument("--sas", default="/home/idies/workspace/SDSS SAS",
-                    help="SAS mount path INSIDE the job (UI shows it when you tick the volume)")
+    ap.add_argument("--sas", default="/home/idies/workspace/sdss_sas",
+                    help="SAS mount path inside the job (probed: same as interactive, "
+                         "/home/idies/workspace/sdss_sas — NOT the UI's 'SDSS SAS')")
     args = ap.parse_args()
 
     if args.discover:

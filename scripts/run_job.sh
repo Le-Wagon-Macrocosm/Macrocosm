@@ -18,7 +18,9 @@ LAST=${2:?last shard inclusive (e.g. 7)}
 K=${3:?total shards K (e.g. 100)}
 PERSIST=${4:?persistent base, e.g. /home/idies/workspace/Storage/<you>/persistent}
 WORKERS=${5:-16}
-SAS="${6:-/home/idies/workspace/SDSS SAS}"   # SAS mount path INSIDE a Compute Job (has a space)
+# Probed inside a Job: the SDSS SAS volume mounts at the SAME path as interactive,
+# /home/idies/workspace/sdss_sas — NOT the "SDSS SAS" the New-Job UI claims.
+SAS="${6:-/home/idies/workspace/sdss_sas}"
 
 echo "[run_job] installing deps ..."
 # A Compute Job's base python (mambaforge 3.10) lacks pandas, so install it
