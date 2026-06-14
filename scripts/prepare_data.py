@@ -181,6 +181,13 @@ def main():
     if miss:
         print(f"[shard {args.shard}] WARNING: {miss} galaxies had a missing/broken "
               f"frame -> zero-filled stamps")
+    # safety: a wrong SAS mount makes EVERY frame open fail -> all-zero garbage.
+    # Refuse to upload that; fail loudly so the path gets fixed instead.
+    if miss > 0.2 * ng:
+        raise SystemExit(
+            f"[shard {args.shard}] ABORTING — {miss}/{ng} galaxies had missing frames. "
+            f"The SAS mount '{args.sas}' is almost certainly wrong (no frames found there). "
+            f"Not uploading all-zero data. Probe with scripts/check_sas.py, fix --sas, rerun.")
 
     local = os.path.join(args.tmp, os.path.basename(blob_name))
     np.save(local, out)

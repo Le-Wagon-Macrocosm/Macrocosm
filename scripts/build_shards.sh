@@ -21,7 +21,7 @@ FIRST=${1:?first shard}; LAST=${2:?last shard}; K=${3:?total shards K}
 KEY=${4:?path to sciserver-uploader.json}; WORKERS=${5:-16}
 # 6th arg: SDSS SAS mount. Interactive container default below; in a Compute Job
 # pass "/home/idies/workspace/SDSS SAS" (quote it — it has a space).
-SAS=${6:-/home/idies/workspace/sdss_sas}
+SAS="${6:-/home/idies/workspace/sdss_sas}"
 CATALOG="gs://macrocosm-lewagon/data/sample_v1/catalog_v1.parquet"
 
 echo "building shards ${FIRST}..${LAST} of ${K}  (workers=${WORKERS})"
