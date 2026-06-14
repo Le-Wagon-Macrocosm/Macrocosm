@@ -125,9 +125,8 @@ def main():
     args = ap.parse_args()
     assert 0 <= args.shard < args.n_shards, "shard out of range"
 
-    global SAS
-    SAS = args.sas
-
+    # NB: workers get the SAS mount via the Pool initializer (_init); main
+    # itself never calls frame_path, so no module-global mutation is needed here.
     from google.cloud import storage
     client = storage.Client.from_service_account_json(args.key)
     bucket = client.bucket(args.bucket)
