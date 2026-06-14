@@ -50,10 +50,17 @@ _SPEC_COLS = ["s.specObjID", "s.z AS redshift", "s.zErr", "s.zWarning",
               "s.class", "s.subClass", "s.plate", "s.mjd", "s.fiberID"]
 
 
-def build_sql(n):
+def build_sql(k, n_chunks):
+    """One chunk: rows whose objID falls in residue class k mod n_chunks.
+
+    CasJobs' synchronous executeQuery has a result-size (memory) cap, so a full
+    600k x ~50-col pull fails with 'Query results exceed memory limitations'.
+    Splitting on objID % n_chunks keeps each call comfortably under the cap.
+    No TOP / ORDER BY here — we concatenate and sort locally afterwards.
+    """
     cols = ",\n  ".join(_PHOTO_COLS + _SPEC_COLS)
     return f"""
-SELECT TOP {n}
+SELECT
   {cols}
 FROM PhotoObj p
 JOIN SpecObj  s ON s.bestObjID = p.objID
@@ -61,7 +68,7 @@ WHERE s.class = 'GALAXY'
   AND s.zWarning = 0
   AND p.clean = 1
   AND s.z BETWEEN {Z_MIN} AND {Z_MAX}
-ORDER BY p.run, p.camcol, p.field, p.objid
+  AND p.objID % {n_chunks} = {k}
 """
 
 
@@ -69,28 +76,41 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("-n", "--n-max", type=int, default=N_MAX,
-                    help=f"max rows (superset size); default {N_MAX}")
+                    help=f"cap to a representative N (via perm); default {N_MAX}. "
+                         "0 = no cap (keep the full clean low-z population)")
+    ap.add_argument("-k", "--chunks", type=int, default=64,
+                    help="split the query into this many objID%%K calls to stay "
+                         "under CasJobs' memory cap (default 64, ~9k rows each)")
     ap.add_argument("-o", "--out", default="catalog_v1.parquet",
                     help="output parquet path (write to a persistent volume)")
     args = ap.parse_args()
 
-    sql = build_sql(args.n_max)
-    print(f"[freeze] querying DR17 for up to {args.n_max:,} galaxies "
-          f"(z in [{Z_MIN}, {Z_MAX}]) ...")
-    # executeQuery streams the result; a straightforward indexed selection of
-    # ~600k rows runs server-side in well under the quick-query limit. If it ever
-    # times out, submit it as a CasJobs job into MyDB instead and download that.
-    df = CasJobs.executeQuery(sql, context=CONTEXT, format="pandas")
-    print(f"[freeze] got {len(df):,} rows, {df.shape[1]} columns")
+    print(f"[freeze] querying DR17 in {args.chunks} chunks "
+          f"(galaxies, z in [{Z_MIN}, {Z_MAX}]) ...")
+    parts = []
+    for k in range(args.chunks):
+        part = CasJobs.executeQuery(build_sql(k, args.chunks),
+                                    context=CONTEXT, format="pandas")
+        parts.append(part)
+        print(f"[freeze]   chunk {k + 1}/{args.chunks}: {len(part):,} rows "
+              f"(total {sum(len(p) for p in parts):,})")
+    df = pd.concat(parts, ignore_index=True)
+    df = df.drop_duplicates("objid")   # a photo obj can rarely match >1 spectrum
+    print(f"[freeze] got {len(df):,} galaxies, {df.shape[1]} columns")
 
-    # row order == build order == image-array order
-    df = df.reset_index(drop=True)
+    rs = np.random.RandomState(SEED)
+    # optional representative cap to the superset size
+    if args.n_max and len(df) > args.n_max:
+        keep = np.sort(rs.permutation(len(df))[:args.n_max])
+        df = df.iloc[keep]
+        print(f"[freeze] capped to a representative {args.n_max:,}")
+
+    # sort -> build order == image-array order; idx locks the alignment
+    df = df.sort_values(["run", "camcol", "field", "objid"]).reset_index(drop=True)
     df.insert(0, "idx", np.arange(len(df), dtype=np.int64))
 
-    # fixed-seed permutation -> representative, nested subsets via perm < N
-    df["perm"] = np.argsort(
-        np.random.RandomState(SEED).permutation(len(df))
-    ).astype(np.int64)
+    # fixed-seed permutation rank -> representative, nested train subsets (perm < N)
+    df["perm"] = np.argsort(rs.permutation(len(df))).astype(np.int64)
 
     df.to_parquet(args.out, index=False)
     print(f"[freeze] wrote {args.out}")
