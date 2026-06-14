@@ -25,6 +25,7 @@ On SciServer (persistent volume, container with SDSS SAS mounted):
 """
 import argparse
 import os
+import time
 import warnings
 
 import numpy as np
@@ -89,9 +90,10 @@ def load_catalog(path, key):
     if path.startswith("gs://"):
         from google.cloud import storage
         bucket_name, blob_name = path[5:].split("/", 1)
-        client = storage.Client.from_service_account_json(key)
         local = "/tmp/" + os.path.basename(blob_name)
-        client.bucket(bucket_name).blob(blob_name).download_to_filename(local)
+        if not os.path.exists(local):           # cache: download once, reuse across shards
+            client = storage.Client.from_service_account_json(key)
+            client.bucket(bucket_name).blob(blob_name).download_to_filename(local)
         path = local
     return pd.read_parquet(path)
 
@@ -147,6 +149,7 @@ def main():
 
     out = np.zeros((end - start, args.size, args.size, len(BANDS)), dtype=args.dtype)
     done = miss = 0
+    t0 = time.time()
     with Pool(args.workers, initializer=_init, initargs=(args.size, args.dtype)) as pool:
         for res in pool.imap_unordered(cut_group, groups, chunksize=8):
             for idx, stamp in res:
@@ -155,8 +158,18 @@ def main():
                     continue
                 out[idx - start] = stamp
             done += 1
-            if done % 500 == 0:
-                print(f"[shard {args.shard}]   {done:,}/{len(groups):,} frames done")
+            if done % 200 == 0:
+                el = time.time() - t0
+                print(f"[shard {args.shard}]   {done:,}/{len(groups):,} frames "
+                      f"({el:.0f}s, {done / el:.1f} frames/s)")
+    el = time.time() - t0
+    ng = end - start
+    print(f"[shard {args.shard}] cut {ng:,} galaxies from {len(groups):,} frames "
+          f"in {el:.0f}s ({ng / el:.1f} gal/s, {len(groups) / el:.1f} frames/s)")
+    # full-build projection at this rate, single 4-worker container:
+    full = 892_536
+    print(f"[shard {args.shard}] => full {full:,} galaxies ≈ "
+          f"{full / (ng / el) / 3600:.1f} h on one container at this rate")
     if miss:
         print(f"[shard {args.shard}] WARNING: {miss} galaxies had a missing/broken "
               f"frame -> zero-filled stamps")
