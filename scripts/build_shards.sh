@@ -18,13 +18,13 @@
 set -euo pipefail
 
 FIRST=${1:?first shard}; LAST=${2:?last shard}; K=${3:?total shards K}
-KEY=${4:?path to sciserver-uploader.json}; WORKERS=${5:-48}
+KEY=${4:?path to sciserver-uploader.json}; WORKERS=${5:-16}
 CATALOG="gs://macrocosm-lewagon/data/sample_v1/catalog_v1.parquet"
 
 echo "building shards ${FIRST}..${LAST} of ${K}  (workers=${WORKERS})"
 for i in $(seq "$FIRST" "$LAST"); do
   echo "================ shard ${i}/${K} ================"
-  python scripts/prepare_data.py \
+  python -u scripts/prepare_data.py \
     --catalog "$CATALOG" --key "$KEY" \
     --of "$K" --shard "$i" --workers "$WORKERS"
 done
