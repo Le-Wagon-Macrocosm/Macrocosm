@@ -30,8 +30,11 @@ clean:  ## remove the local venv
 
 # ===== pipeline (stubs) =====
 
-prepare-data:  ## pull + preprocess + freeze the SDSS dataset (scripts/)
-	@echo "TODO: python -m scripts.prepare_data"
+prepare-data:  ## build image stamps -> GCS (run ON SciServer, per shard)
+	@echo "Run on SciServer. Step A (once):  python scripts/freeze_catalog.py"
+	@echo "Step B (per shard i of K):"
+	@echo "  python scripts/prepare_data.py --catalog gs://$(PROJECT)/data/sample_v1/catalog_v1.parquet \\"
+	@echo "    --key <sa-key.json> --of 64 --shard <i>"
 
 train:  ## train the model (baseline / CNN)
 	@echo "TODO: python -m scripts.train"
