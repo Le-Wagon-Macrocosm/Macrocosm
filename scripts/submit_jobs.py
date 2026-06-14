@@ -20,7 +20,7 @@ import argparse
 from SciServer import Jobs
 
 CATALOG = "gs://macrocosm-lewagon/data/sample_v1/catalog_v1.parquet"
-DEPS = "astropy google-cloud-storage gcsfs pyarrow"
+DEPS = "numpy pandas astropy google-cloud-storage gcsfs pyarrow"
 
 
 def discover():

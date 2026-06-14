@@ -21,7 +21,9 @@ WORKERS=${5:-16}
 SAS=${6:-/home/idies/workspace/SDSS SAS}   # SAS mount path INSIDE a Compute Job
 
 echo "[run_job] installing deps ..."
-pip install --user -q astropy google-cloud-storage gcsfs pyarrow
+# A Compute Job's base python (mambaforge 3.10) lacks pandas, so install it
+# explicitly — unlike the interactive SciServer Essentials env which bundles it.
+pip install --user -q numpy pandas astropy google-cloud-storage gcsfs pyarrow
 
 cd "$PERSIST/Macrocosm"
 echo "[run_job] building shards ${FIRST}..${LAST} of ${K}  (persist=${PERSIST})"
