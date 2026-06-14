@@ -80,10 +80,15 @@ def cut_group(group):
 
     out = []
     for idx, ra, dec in gals:
-        pos = SkyCoord(ra, dec, unit="deg")
-        chans = [Cutout2D(d, pos, (_SIZE, _SIZE), wcs=wcs,
-                          mode="partial", fill_value=0).data for d in data]
-        out.append((idx, np.stack(chans, -1).astype(_DTYPE)))
+        try:
+            pos = SkyCoord(ra, dec, unit="deg")
+            chans = [Cutout2D(d, pos, (_SIZE, _SIZE), wcs=wcs,
+                              mode="partial", fill_value=0).data for d in data]
+            out.append((idx, np.stack(chans, -1).astype(_DTYPE)))
+        except Exception:
+            # galaxy lands off its listed frame (rare SDSS edge case) -> zero-fill
+            # this one (counted as `miss`); one bad object must not kill the job.
+            out.append((idx, None))
     return out
 
 
