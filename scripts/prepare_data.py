@@ -152,7 +152,7 @@ def main():
     done = miss = 0
     t0 = time.time()
     with Pool(args.workers, initializer=_init, initargs=(args.size, args.dtype)) as pool:
-        for res in pool.imap_unordered(cut_group, groups, chunksize=8):
+        for res in pool.imap_unordered(cut_group, groups, chunksize=1):
             for idx, stamp in res:
                 if stamp is None:
                     miss += 1
