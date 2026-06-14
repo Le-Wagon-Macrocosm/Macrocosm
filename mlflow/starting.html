@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="5">
+  <title>MLflow is starting…</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#0b1020;color:#e8eaf0;
+         display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center}
+    .card{text-align:center;max-width:30rem;padding:2rem}
+    .spin{width:42px;height:42px;border:4px solid #2a3358;border-top-color:#6c8cff;
+          border-radius:50%;margin:0 auto 1.2rem;animation:s 1s linear infinite}
+    @keyframes s{to{transform:rotate(360deg)}}
+    h1{font-size:1.4rem;margin:.2rem 0}p{color:#9aa3c0;line-height:1.5}
+    code{color:#cdd6ff;background:#161c33;padding:.1rem .4rem;border-radius:4px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spin"></div>
+    <h1>MLflow is starting…</h1>
+    <p>The tracking server is booting (this takes a minute or two after
+       <code>make mlflow-start</code>). This page refreshes every 5&nbsp;seconds —
+       it will switch to the MLflow UI automatically once ready.</p>
+  </div>
+</body>
+</html>

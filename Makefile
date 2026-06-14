@@ -93,11 +93,12 @@ MLFLOW_ZONE ?= europe-west1-b
 MLFLOW_IP   ?= macrocosm-mlflow-ip
 
 mlflow-create:  ## one-time: reserve static IP + create VM + open 80/443 (then deploy compose, see mlflow/README)
+	gcloud services enable compute.googleapis.com --project $(PROJECT)
 	-gcloud compute addresses create $(MLFLOW_IP) --region $(REGION) --project $(PROJECT)
 	-gcloud compute firewall-rules create macrocosm-mlflow-web --project $(PROJECT) \
 		--allow tcp:80,tcp:443 --direction INGRESS --target-tags mlflow
 	gcloud compute instances create $(MLFLOW_VM) --project $(PROJECT) --zone $(MLFLOW_ZONE) \
-		--machine-type e2-small --tags mlflow \
+		--machine-type e2-medium --tags mlflow \
 		--image-family ubuntu-2204-lts --image-project ubuntu-os-cloud \
 		--scopes cloud-platform \
 		--address $$(gcloud compute addresses describe $(MLFLOW_IP) --region $(REGION) --project $(PROJECT) --format='value(address)') \

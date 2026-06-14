@@ -5,6 +5,10 @@
 services:
   mlflow:
     image: python:3.11-slim
+    environment:
+      # mlflow 3.x rejects proxied Host headers (DNS-rebinding guard). It's only
+      # reachable via oauth2-proxy here, so that check is redundant -> allow all.
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
     command: >
       sh -c "pip install --no-cache-dir -q mlflow google-cloud-storage gcsfs &&
              mlflow server --host 0.0.0.0 --port 5000
@@ -34,12 +38,17 @@ services:
 
   caddy:
     image: caddy:2
-    command: caddy reverse-proxy --from ${HOST} --to oauth2-proxy:4180
+    environment:
+      HOST: ${HOST}                # Caddyfile reads {$HOST}
+      MLFLOW_API_TOKEN: ${MLFLOW_API_TOKEN}   # bearer token for programmatic (Colab) access
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     ports:
       - "80:80"                    # Let's Encrypt HTTP-01 challenge + redirect to https
       - "443:443"                  # this is what teammates hit
     volumes:
       - caddy-data:/data           # persisted TLS certs
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./starting.html:/srv/starting.html:ro
     depends_on: [oauth2-proxy]
     restart: unless-stopped
 
