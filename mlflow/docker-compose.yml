@@ -1,0 +1,48 @@
+# MLflow tracking server, gated by GitHub-org login.
+#   Caddy (auto-HTTPS via Let's Encrypt)  ->  oauth2-proxy (GitHub org)  ->  mlflow
+# Runs on the GCP VM (see ../Makefile mlflow-* and KB "MLflow tracking server").
+# Values come from .env (copy .env.example -> .env on the VM; NEVER commit .env).
+services:
+  mlflow:
+    image: python:3.11-slim
+    command: >
+      sh -c "pip install --no-cache-dir -q mlflow google-cloud-storage gcsfs &&
+             mlflow server --host 0.0.0.0 --port 5000
+             --backend-store-uri sqlite:////data/mlflow.db
+             --default-artifact-root gs://macrocosm-lewagon/mlflow"
+    volumes:
+      - mlflow-data:/data          # run metadata (sqlite) — back this up before deleting the VM
+    restart: unless-stopped
+    # artifacts go to GCS via the VM's service account (ADC) — no key file needed
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    environment:
+      OAUTH2_PROXY_PROVIDER: github
+      OAUTH2_PROXY_GITHUB_ORG: ${GH_ORG}              # only members of this org get in
+      OAUTH2_PROXY_CLIENT_ID: ${GH_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${GH_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${COOKIE_SECRET}    # openssl rand -base64 32
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"                 # don't filter by email, only by org
+      OAUTH2_PROXY_UPSTREAMS: http://mlflow:5000
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_REDIRECT_URL: https://${HOST}/oauth2/callback
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+    depends_on: [mlflow]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    command: caddy reverse-proxy --from ${HOST} --to oauth2-proxy:4180
+    ports:
+      - "80:80"                    # Let's Encrypt HTTP-01 challenge + redirect to https
+      - "443:443"                  # this is what teammates hit
+    volumes:
+      - caddy-data:/data           # persisted TLS certs
+    depends_on: [oauth2-proxy]
+    restart: unless-stopped
+
+volumes:
+  mlflow-data:
+  caddy-data:

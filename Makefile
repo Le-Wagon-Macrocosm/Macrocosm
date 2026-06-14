@@ -5,7 +5,7 @@
 VENV := .venv
 PIP  := $(VENV)/bin/pip
 
-.PHONY: help install backend frontend prepare-data train test docker-build publish-backend publish-frontend deploy clean
+.PHONY: help install backend frontend prepare-data train test docker-build publish-backend publish-frontend deploy clean mlflow-create mlflow-start mlflow-stop mlflow-url
 
 help:  ## list available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n", $$1, $$2}'
@@ -86,3 +86,31 @@ deploy: publish-backend  ## push the backend image, then deploy it to Cloud Run
 #   gcloud artifacts repositories create $(AR_REPO) --repository-format=docker --location=$(REGION) --project=$(PROJECT)
 #   gcloud auth configure-docker $(AR_HOST)      # let docker push to Artifact Registry
 #   grant the Cloud Run service account "Storage Object Viewer" on the model bucket (reads MODEL_URI)
+
+# ===== MLflow tracking server on a GCP VM (see mlflow/ + KB MCM-A-14) =====
+MLFLOW_VM   ?= macrocosm-mlflow
+MLFLOW_ZONE ?= europe-west1-b
+MLFLOW_IP   ?= macrocosm-mlflow-ip
+
+mlflow-create:  ## one-time: reserve static IP + create VM + open 80/443 (then deploy compose, see mlflow/README)
+	-gcloud compute addresses create $(MLFLOW_IP) --region $(REGION) --project $(PROJECT)
+	-gcloud compute firewall-rules create macrocosm-mlflow-web --project $(PROJECT) \
+		--allow tcp:80,tcp:443 --direction INGRESS --target-tags mlflow
+	gcloud compute instances create $(MLFLOW_VM) --project $(PROJECT) --zone $(MLFLOW_ZONE) \
+		--machine-type e2-small --tags mlflow \
+		--image-family ubuntu-2204-lts --image-project ubuntu-os-cloud \
+		--scopes cloud-platform \
+		--address $$(gcloud compute addresses describe $(MLFLOW_IP) --region $(REGION) --project $(PROJECT) --format='value(address)') \
+		--metadata-from-file startup-script=mlflow/startup.sh
+	@$(MAKE) mlflow-url
+
+mlflow-start:  ## start the MLflow VM (compose auto-restarts; ~a few min to be ready)
+	gcloud compute instances start $(MLFLOW_VM) --zone $(MLFLOW_ZONE) --project $(PROJECT)
+	@$(MAKE) mlflow-url
+
+mlflow-stop:  ## stop the MLflow VM (pauses compute billing; static IP + run data kept)
+	gcloud compute instances stop $(MLFLOW_VM) --zone $(MLFLOW_ZONE) --project $(PROJECT)
+
+mlflow-url:  ## print the tracking URL (export MLFLOW_TRACKING_URI to this)
+	@IP=$$(gcloud compute addresses describe $(MLFLOW_IP) --region $(REGION) --project $(PROJECT) --format='value(address)' 2>/dev/null); \
+	echo "MLFLOW_TRACKING_URI=https://$$(echo $$IP | tr . -).sslip.io"
