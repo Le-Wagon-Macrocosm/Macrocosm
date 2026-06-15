@@ -8,11 +8,15 @@ labels) and near-duplicates (collinear), and prints a shortlist to take into
 the model + the detailed EDA (see KB · Preprocessing & features, EDA task).
 
 Run anywhere with the data-science deps (Colab, or the `macrocosm` venv):
-    python scripts/feature_shortlist.py
-    python scripts/feature_shortlist.py --catalog catalog_v1.parquet --n 60000 --top 15
+    python scripts/feature_shortlist.py                    # quick pass, ~500 rows
+    python scripts/feature_shortlist.py --n 5000 --top 15  # steadier ranking
 
-Reading `gs://...` needs GCS auth: in Colab `auth.authenticate_user()`, locally
-`gcloud auth application-default login` (or download the parquet and pass a path).
+Tip: the slow part is downloading the 207 MB parquet every run. Grab it ONCE and
+pass the local path so re-runs are instant:
+    gcloud storage cp gs://macrocosm-lewagon/data/sample_v1/catalog_v1.parquet .
+    python scripts/feature_shortlist.py --catalog catalog_v1.parquet
+Reading `gs://...` directly needs GCS auth (Colab `auth.authenticate_user()`,
+locally `gcloud auth application-default login`).
 """
 import argparse
 import numpy as np
@@ -68,7 +72,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--catalog", default=CATALOG, help="catalog parquet (local path or gs://)")
-    ap.add_argument("--n", type=int, default=60_000, help="sample size (perm < n) for speed; 0 = all")
+    ap.add_argument("--n", type=int, default=500,
+                    help="sample size (perm < n). ~500 is fine for a quick ranking; "
+                         "bump to a few thousand for the final selection; 0 = all")
     ap.add_argument("--top", type=int, default=15, help="shortlist length")
     ap.add_argument("--corr", type=float, default=0.95, help="collinearity threshold to drop dupes")
     args = ap.parse_args()
@@ -89,6 +95,8 @@ def main():
     print(f"\n=== shortlist (top {args.top}, |corr| < {args.corr}) ===")
     for i, f in enumerate(keep[:args.top], 1):
         print(f"  {i:2d}. {f}")
+    if args.n and args.n < 5000:
+        print("\n(quick pass on a small sample — re-run with --n 5000 before locking features.)")
     print("\nStarting tabular feature set. Now do the detailed EDA on THESE only "
           "(distribution/skew, scatter vs z, missing). See KB · Preprocessing & features.")
 
