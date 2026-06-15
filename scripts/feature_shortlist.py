@@ -34,7 +34,12 @@ NON_FEATURES = {
 
 
 def build_features(df):
-    """Drop non-features, derive colors + a concentration index. Returns (X, y)."""
+    """Clean SDSS sentinels, drop non-features, derive colors + concentration. Returns (X, y)."""
+    df = df.copy()
+    # SDSS uses -9999 for "not measured" — a handful of rows, but the extreme
+    # value wrecks every mean/std/skew/correlation. Treat as missing.
+    num = df.select_dtypes("number").columns
+    df[num] = df[num].mask(df[num] <= -100)
     drop = set(NON_FEATURES) | {c for c in df.columns if "Err" in c}      # error columns
     X = df.drop(columns=[c for c in drop if c in df.columns]).select_dtypes("number").copy()
     # colors = the core photo-z signal (SED shape), from the dereddened mags
