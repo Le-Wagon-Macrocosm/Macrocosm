@@ -2,8 +2,12 @@
 # Single command surface for the whole team. Fill in commands as the code lands.
 .DEFAULT_GOAL := help
 
-VENV := .venv
-PIP  := $(VENV)/bin/pip
+VENV   := .venv
+PIP    := $(VENV)/bin/pip
+# Pin the local Python to 3.12 (matches backend/Dockerfile + CI). Override if needed:
+#   make install PYTHON=/path/to/python3.12
+PYTHON ?= python3.12
+PYVER  := 3.12
 
 .PHONY: help install backend frontend prepare-data train test docker-build publish-backend publish-frontend deploy clean mlflow-create mlflow-start mlflow-stop mlflow-url
 
@@ -13,7 +17,9 @@ help:  ## list available targets
 # ===== local dev (NO Docker) — the venv is for local testing only; Docker installs deps itself =====
 
 $(VENV)/bin/uvicorn: backend/requirements.txt   # (re)create venv + install backend deps when reqs change
-	python3 -m venv $(VENV)
+	@command -v $(PYTHON) >/dev/null 2>&1 || { echo ">> '$(PYTHON)' not found. Install Python $(PYVER), or: make install PYTHON=/path/to/python$(PYVER)"; exit 1; }
+	@$(PYTHON) -c 'import sys;exit(0 if "%d.%d"%sys.version_info[:2]=="$(PYVER)" else 1)' || { echo ">> need Python $(PYVER), got $$($(PYTHON) --version)"; exit 1; }
+	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r backend/requirements.txt
 
