@@ -64,12 +64,16 @@ Macrocosm/
 
 `main` is **protected**: branch off `main` → open a PR → green CI (`test`) → merge. Branch names `MCM-XX-short-slug`; reference the YouTrack issue (`MCM-XX`) in the PR. Never commit secrets / SA keys / `.env` / large data. See `CONTRIBUTING.md` + KB *Git workflow & repo governance*.
 
-## Getting started
+## Getting started (local dev)
+
+We use **pyenv** + Python **3.10.6** (Le Wagon standard). One-time:
 
 ```bash
-make help        # list all commands
-make install     # local venv + backend deps (local testing only)
-make backend     # run the FastAPI backend locally
+git clone https://github.com/Le-Wagon-Macrocosm/Macrocosm.git && cd Macrocosm
+pyenv virtualenv 3.10.6 macrocosm     # create the project virtualenv
+pyenv local macrocosm                 # auto-activate it here (reads .python-version)
+make install                          # install deps into it
+make backend                          # run the FastAPI backend
 ```
 
-Pinned deps in `backend/requirements.txt`. Some pipeline targets (`train`, `prepare-data`) run on Colab / SciServer — see the KB.
+The committed **`.python-version`** names the virtualenv (`macrocosm`) so everyone uses the same one. **`requirements.txt`** = local dev / data-science stack (pulls in the backend deps); **`backend/requirements.txt`** = the lean deps the API container ships (also what CI installs). Training runs on Colab, data build on SciServer — see the KB.

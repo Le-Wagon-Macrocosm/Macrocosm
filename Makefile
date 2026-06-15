@@ -2,31 +2,29 @@
 # Single command surface for the whole team. Fill in commands as the code lands.
 .DEFAULT_GOAL := help
 
-VENV := .venv
-PIP  := $(VENV)/bin/pip
+# Local dev uses pyenv + Python 3.10.6 (Le Wagon standard). The committed
+# `.python-version` (virtualenv name `macrocosm`) auto-activates it in this dir.
 
 .PHONY: help install backend frontend prepare-data train test docker-build publish-backend publish-frontend deploy clean mlflow-create mlflow-start mlflow-stop mlflow-url
 
 help:  ## list available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n", $$1, $$2}'
 
-# ===== local dev (NO Docker) — the venv is for local testing only; Docker installs deps itself =====
+# ===== local dev (NO Docker) — runs in your active pyenv virtualenv =====
 
-$(VENV)/bin/uvicorn: backend/requirements.txt   # (re)create venv + install backend deps when reqs change
-	python3 -m venv $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install -r backend/requirements.txt
+install:  ## install dev deps into the active virtualenv (needs `pyenv local macrocosm` first)
+	@python -c 'import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)' || { echo ">> No virtualenv active. Run:  pyenv virtualenv 3.10.6 macrocosm && pyenv local macrocosm"; exit 1; }
+	pip install --upgrade pip
+	pip install -r requirements.txt          # local dev / data-science stack (pulls in backend deps)
 
-install: $(VENV)/bin/uvicorn  ## set up the local venv + backend deps (local testing only)
-
-backend: install  ## run the FastAPI backend locally (venv + auto-reload)
-	$(VENV)/bin/uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+backend: install  ## run the FastAPI backend locally (auto-reload)
+	uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
 frontend:  ## run the Three.js frontend locally (node dev server)
 	cd frontend && npm install && npm run dev
 
-clean:  ## remove the local venv
-	rm -rf $(VENV)
+clean:  ## remove python caches (the virtualenv is managed by pyenv: `pyenv uninstall macrocosm`)
+	find . -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 
 # ===== pipeline (stubs) =====
 

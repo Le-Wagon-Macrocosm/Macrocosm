@@ -1,0 +1,20 @@
+# Local dev / EDA / modeling environment — pyenv virtualenv `macrocosm`, Python 3.10.6.
+# Includes the lean backend deps PLUS the data-science stack. The backend container
+# (backend/Dockerfile) installs ONLY backend/requirements.txt, not this file.
+#
+#   pyenv virtualenv 3.10.6 macrocosm && pyenv local macrocosm && make install
+
+-r backend/requirements.txt
+
+# data-science / EDA / modeling (local exploration)
+pandas
+matplotlib
+seaborn
+jupyterlab
+astropy
+mlflow
+gcsfs
+pyarrow
+
+# TensorFlow/Keras: training runs on Colab. Only `pip install tensorflow` locally
+# if you do model dev on your own machine.
