@@ -9,6 +9,9 @@ A set of small, self-contained experiments on **catastrophic outliers** in tabul
 - **Hard set:** a 400k 5-fold CV with three models (HGB, RF, MLP) already identified **6,974 galaxies**
   that *all three* fail on out-of-fold (|Δz/(1+z)| > 0.05). Their objids are in **`hard_objids.csv`**.
   Use it as a fixed input — do **not** re-run the 400k job.
+- **SciServer CV output:** the full 400k out-of-fold predictions + metrics are bundled at
+  `gs://macrocosm-lewagon/results/outlier_cv_results.tar.gz` (**on GCS, not in git** — too big).
+  **Task 00** downloads and analyzes it; that's where the ceiling and the hard set come from.
 - **Metric:** `σ_MAD = 1.4826·median(|Δz − median(Δz)|)`, `Δz = (z_pred − z_true)/(1+z)`; outlier = |Δz| > 0.05.
   Report σ_MAD **and** outlier rate.
 
