@@ -12,7 +12,49 @@ def tabular_features(row):
     notebook): 5 dered passthrough, 4 colors = dered diffs clip(-1, 4), 5 log1p sizes,
     fracDeV_r passthrough, conc_r = petroR90_r / petroR50_r. mask[i]=1 if feature i is
     finite else 0 (and that value is filled with 0)."""
-    # TODO (task 02)
+
+    clean = {}
+
+    for name in settings.RAW_TABULAR_FIELDS:
+         value = float(row.get(name, np.nan))
+         clean[name] = np.nan if value <= SENTINEL else value
+
+    features = [
+        clean['dered_u'],
+        clean['dered_g'],
+        clean['dered_r'],
+        clean['dered_i'],
+        clean['dered_z'],
+
+        np.clip(clean['dered_g'] - clean['dered_r'], -1, 4),
+        np.clip(clean['dered_u'] - clean['dered_g'], -1, 4),
+        np.clip(clean['dered_r'] - clean['dered_i'], -1, 4),
+        np.clip(clean['dered_i'] - clean['dered_z'], -1, 4),
+
+        np.log1p(max(clean['expRad_r'], 0)),
+        np.log1p(max(clean['deVRad_r'], 0)),
+        np.log1p(max(clean['petroRad_r'], 0)),
+        np.log1p(max(clean['petroR50_r'], 0)),
+        np.log1p(max(clean['petroR90_r'], 0)),
+
+        clean['fracDeV_r'],
+
+        (
+            clean['petroR90_r'] / clean['petroR50_r']
+            if np.isfinite(clean['petroR90_r'])
+            and np.isfinite(clean['petroR50_r'])
+            and clean['petroR50_r'] != 0
+            else np.nan
+        )
+    ]
+
+    X = np.asarray(features, dtype=np.float32)
+    mask = np.isfinite(X).astype(np.float32)
+
+    X[~np.isfinite(X)] = 0.0
+
+    return X, mask
+
     raise NotImplementedError
 
 
