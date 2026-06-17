@@ -1,10 +1,10 @@
-"""TASK 09: TestClient tests for GET / and POST /predict."""
-import numpy as np
-from fastapi.testclient import TestClient
-from backend.main import app
+"""API contract tests.  TASK 11.
 
-client = TestClient(app)
-
-# TODO test_root
-# TODO test_predict_batch  (np.zeros((3,64,64,5)).tolist() -> 200, 3 predictions)
-# TODO test_predict_bad_shape  (32x32x5 -> 422)
+Build TINY fixtures (a small fake baseline dict {'model','features'} + the fake image model),
+point BASELINE_PATH / IMAGE_MODEL_PATH at them *before* importing backend.main, then test:
+  - GET /                              -> 200, status "ok"
+  - POST /predict image-only          -> 200, has z + distance_gly
+  - POST /predict image + tabular JSON -> 200
+  - POST /predict a 32x32x5 cutout     -> 422
+"""
+# TODO (task 11)

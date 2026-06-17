@@ -1,3 +1,4 @@
-# TASK 06: runtime deps for the image-serving API.
-# Hint: fastapi, uvicorn[standard], numpy, joblib, pydantic
-# (pin scikit-learn==1.7.2 only if you also serve the sklearn tabular model)
+# TODO (task 08): list the runtime deps, pinned where it matters.
+# The API needs: a web framework + ASGI server, numpy, the pickle loader, the ML library that
+# can UNPICKLE baseline_stack.pkl (version MUST match how it was trained — check the pickle's
+# 'sklearn_version'), a cosmology library for z->distance, multipart form parsing, and pydantic.

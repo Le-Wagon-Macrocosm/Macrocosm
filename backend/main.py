@@ -1,17 +1,26 @@
-"""FastAPI app for image-based photo-z prediction.  TASK 05 (GET /) + TASK 08 (POST /predict)."""
+"""FastAPI app — single fused /predict (image + optional tabular -> z, distance).
+TASK 07 -> app + lifespan + CORS + GET "/" ; TASK 10 -> POST "/predict"."""
+import io
+import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+
+import numpy as np
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
 from .config import settings
-# TODO import schemas / preprocessing / model as you need them
+from .schemas import TabularInput, PredictResponse
+from .features import preprocess_image, tabular_features
+from .model import load_models, get_models, predict_z
+from .cosmology import z_to_distance_gly
 
-
-# TODO (TASK 05): load the model on startup via a lifespan handler, then create `app`
-# @asynccontextmanager
-# async def lifespan(app): ...; yield
-# app = FastAPI(title=settings.TITLE, lifespan=lifespan)
-
-
-# TODO (TASK 05): GET /  -> {"status": "ok", "model": <class name>, "input_shape": settings.IMG_SHAPE}
-
-
-# TODO (TASK 08): POST /predict  (req -> prepare_images -> predict_z -> PredictResponse; 422 on ValueError)
+# TODO (task 07): build the app:
+#   - an async lifespan handler that calls load_models() then `yield`
+#   - app = FastAPI(title=settings.TITLE, lifespan=lifespan)
+#   - app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS, ...)
+#   - @app.get("/") health route -> {"status":"ok", model names, "input_shape": settings.IMG_SHAPE}
+# TODO (task 10): add @app.post("/predict", response_model=PredictResponse):
+#   read the .npy cutout from the upload -> preprocess_image (ValueError -> HTTP 422);
+#   if a tabular JSON part is present -> TabularInput -> tabular_features -> (n,16);
+#   predict_z(imgs, feats) -> z; return PredictResponse(z=z, distance_gly=z_to_distance_gly(z)).
+raise NotImplementedError("implement the app — task 07 (health) then task 10 (predict)")
