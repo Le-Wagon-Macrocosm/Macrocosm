@@ -2,3 +2,11 @@
 # The API needs: a web framework + ASGI server, numpy, the pickle loader, the ML library that
 # can UNPICKLE baseline_stack.pkl (version MUST match how it was trained — check the pickle's
 # 'sklearn_version'), a cosmology library for z->distance, multipart form parsing, and pydantic.
+fastapi
+uvicorn[standard]
+numpy
+joblib
+scikit-learn==1.9.0
+astropy
+python-multipart
+pydantic
