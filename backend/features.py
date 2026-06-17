@@ -58,9 +58,44 @@ def tabular_features(row):
     raise NotImplementedError
 
 
-def preprocess_image(arr, crop=None):
+def preprocess_image(arr, crop=64):
     """arr: (64,64,5) or (n,64,64,5) -> (n,S,S,5) float32.
     Center-crop to settings.CROP, arcsinh stretch, per-image per-channel normalize.
     Raise ValueError on a wrong-shaped cutout."""
-    # TODO (task 03)
-    raise NotImplementedError
+    IMG_SHAPE = (64,64,5)
+
+    # Validate Shape
+    if not isinstance(arr, np.ndarray):
+        raise TypeError(f"Expected numpy array, got {type(arr).__name__}")
+
+    if arr.ndim == 3:
+        arr = arr[np.newaxis, ...]
+
+    if arr.shape[1:] != IMG_SHAPE:
+        raise ValueError(f"Expected (64, 64, 5), got {arr.shape}")
+
+    # Center Crop
+    N, h, w, C = arr.shape
+    if (h < crop or w < crop) and crop != None:
+        raise ValueError(
+            f"Image dimensions ({h}x{w}) are smaller than crop size ({crop}x{crop})"
+        )
+
+    start_h = (h - crop) // 2
+    start_w = (w - crop) // 2
+
+    cropped_img = arr[:, start_h:start_h+crop, start_w:start_w+crop, :]
+
+    # Arcsinh Transformation to supress bright images, compressing outliers & preserve sine
+    transformed = np.arcsinh(cropped_img)
+
+    # Normalization
+    # Compute mean and std across batch (0), height (1), and width (2) for each channel (3)
+    mean = transformed.mean(axis=(1, 2), keepdims=True)
+    std = transformed.std(axis=(1, 2), keepdims=True)
+    # Prevent normalization err if std is 0
+    std[std==0] = 1.0
+
+    normalized = (transformed - mean) / std
+
+    return normalized
