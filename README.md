@@ -77,3 +77,23 @@ make backend                          # run the FastAPI backend
 ```
 
 The committed **`.python-version`** names the virtualenv (`macrocosm`) so everyone uses the same one. **`requirements.txt`** = local dev / data-science stack (pulls in the backend deps); **`backend/requirements.txt`** = the lean deps the API container ships (also what CI installs). Training runs on Colab, data build on SciServer — see the KB.
+
+## Environment & data access (`.env` / GCS)
+
+All config lives in a single **`.env`** (gitignored), same pattern as the bootcamp challenges. Once set, your virtualenv can read our GCS bucket (catalog, results) with **no separate gcloud login**.
+
+**One-time setup**
+
+1. `cp .env.sample .env`
+2. Get **`sciserver-uploader.json`** (the GCS key shared on Slack). Save it **outside the repo**, then set `GOOGLE_APPLICATION_CREDENTIALS` in `.env` to its **absolute** path.
+3. Load it:
+   - **VS Code**: nothing to do — the Python/Jupyter extension reads `.env` automatically. Reload the window after editing `.env`.
+   - **Terminal (zsh + direnv)**: `direnv allow .` (install once with `brew install direnv` / `sudo apt install -y direnv`, then add `direnv` to your `.zshrc` plugins — same as the ML-Ops module). `direnv reload .` after editing `.env`.
+4. Verify from your venv:
+   ```python
+   import gcsfs
+   print(gcsfs.GCSFileSystem().ls("macrocosm-lewagon/data/sample_v1")[:3])   # should list the catalog/shards
+   ```
+   Then `pd.read_parquet(os.environ["CATALOG_GCS"])` reads straight from GCS.
+
+🚨 **Never commit** `.env` or the `*.json` key — both are in `.gitignore`. If you hit a `403 Forbidden`, your `GOOGLE_APPLICATION_CREDENTIALS` is unset or points at the wrong key.
