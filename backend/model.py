@@ -40,5 +40,8 @@ def get_models():
 def predict_z(images, tabular=None):
     """images: (n,S,S,5) preprocessed. tabular: (n,16) feature matrix or None. -> list[float].
     Placeholder fusion: tabular present -> baseline.predict; else -> image.predict."""
-    # TODO (task 09)
-    raise NotImplementedError
+    baseline, image = get_models()
+    if tabular is not None:
+        return baseline.predict(tabular).tolist()
+    else:
+        return image.predict(images).tolist()
