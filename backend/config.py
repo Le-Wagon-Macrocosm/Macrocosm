@@ -3,7 +3,6 @@ import os
 
 
 class Settings:
-    # TODO (task 01): define the settings the rest of the backend imports. You need:
     #   BASELINE_PATH      env "BASELINE_PATH",   default the baseline pkl path under models/
     #   IMAGE_MODEL_PATH   env "IMAGE_MODEL_PATH", default the fake image pkl path under models/
     #   IMG_SHAPE          the (h, w, bands) of one ugriz cutout
@@ -12,7 +11,15 @@ class Settings:
     #   RAW_TABULAR_FIELDS the raw catalog columns a request carries (engineered -> the 16)
     #   CORS_ORIGINS       allowed origins, env "CORS_ORIGINS" comma-separated
     #   TITLE              the API title
-    pass
+    def __init__(self):
+        self.BASELINE_PATH = 'models/baseline_stack.pkl'
+        self.IMAGE_MODEL_PATH = 'models/fake_image_model.pkl'
+        self.IMG_SHAPE = (64, 64, 5)
+        self.CROP = 64
+        self.TABULAR_FEATURES = ["dered_u","dered_g","dered_r","dered_i","dered_z","g-r","u-g","r-i","i-z","log_expRad_r","log_deVRad_r","log_petroRad_r","log_petroR50_r","log_petroR90_r","fracDeV_r","conc_r"]
+        self.RAW_TABULAR_FIELDS = ["dered_u","dered_g","dered_r","dered_i","dered_z","expRad_r","deVRad_r","petroRad_r","petroR50_r","petroR90_r","fracDeV_r"]
+        self.CORS_ORIGINS = "*"
+        self.TITLE = "Macrocosm photo-z API"
 
 
 settings = Settings()
