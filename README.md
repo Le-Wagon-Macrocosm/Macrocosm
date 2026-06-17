@@ -80,15 +80,19 @@ The committed **`.python-version`** names the virtualenv (`macrocosm`) so everyo
 
 ## Environment & data access (`.env` / GCS)
 
-All config lives in a single **`.env`** (gitignored), same pattern as the bootcamp challenges. Once set, your virtualenv can read our GCS bucket (catalog, results) with **no separate gcloud login**.
+Config lives in a single **`.env`** (gitignored). GCS access uses **your own Google account** — your Gmail already has IAM on the bucket, so no shared key is needed.
 
 **One-time setup**
 
-1. `cp .env.sample .env`
-2. Get **`sciserver-uploader.json`** (the GCS key shared on Slack). Save it **outside the repo**, then set `GOOGLE_APPLICATION_CREDENTIALS` in `.env` to its **absolute** path.
-3. Load it:
-   - **VS Code**: nothing to do — the Python/Jupyter extension reads `.env` automatically. Reload the window after editing `.env`.
-   - **Terminal (zsh + direnv)**: `direnv allow .` (install once with `brew install direnv` / `sudo apt install -y direnv`, then add `direnv` to your `.zshrc` plugins — same as the ML-Ops module). `direnv reload .` after editing `.env`.
+1. `cp .env.sample .env`  (edit `GOOGLE_CLOUD_PROJECT` if needed; leave `GOOGLE_APPLICATION_CREDENTIALS` unset)
+2. Log in with the **Gmail that was added to the project**:
+   ```bash
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project macrocosm-lewagon
+   ```
+3. Load the `.env`:
+   - **VS Code**: nothing to do — the Python/Jupyter extension reads `.env` automatically. Reload the window after editing it.
+   - **Terminal (zsh + direnv)**: `direnv allow .` (install once with `brew install direnv` / `sudo apt install -y direnv`, then add `direnv` to your `.zshrc` plugins — same as the ML-Ops module).
 4. Verify from your venv:
    ```python
    import gcsfs
@@ -96,4 +100,4 @@ All config lives in a single **`.env`** (gitignored), same pattern as the bootca
    ```
    Then `pd.read_parquet(os.environ["CATALOG_GCS"])` reads straight from GCS.
 
-🚨 **Never commit** `.env` or the `*.json` key — both are in `.gitignore`. If you hit a `403 Forbidden`, your `GOOGLE_APPLICATION_CREDENTIALS` is unset or points at the wrong key.
+🚨 **`403 Forbidden`?** The usual cause is `GOOGLE_APPLICATION_CREDENTIALS` being set (often to the Le Wagon bootcamp SA from another challenge), which **overrides** your personal login. `unset GOOGLE_APPLICATION_CREDENTIALS` (and remove it from any `.env`/`.zshrc`), then re-run. Last resort: use the shared `sciserver-uploader.json` key (see the commented line in `.env.sample`). Never commit `.env` or any `*.json` key.
