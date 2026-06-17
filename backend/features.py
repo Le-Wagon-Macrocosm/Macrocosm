@@ -55,8 +55,6 @@ def tabular_features(row):
 
     return X, mask
 
-    raise NotImplementedError
-
 
 def preprocess_image(arr, crop=64):
     """arr: (64,64,5) or (n,64,64,5) -> (n,S,S,5) float32.
