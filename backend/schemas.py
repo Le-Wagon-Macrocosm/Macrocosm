@@ -1,6 +1,6 @@
 """Pydantic request/response models.  TASK 04."""
 from typing import Optional
-
+from pydantic import BaseModel
 
 # TODO (task 04): define two models, then delete this comment.
 #   TabularInput     - one Optional[float] = None per raw catalog field (settings.RAW_TABULAR_FIELDS)
@@ -31,13 +31,8 @@ class TabularInput:
         self.petroR90_r = petroR90_r
         self.fracDeV_r = fracDeV_r
 
-class PredictResponse:
-    def __init__(self,
-                 z: float,
-                 distance_gly: Optional[float] = None,
-                 z_lo: Optional[float] = None,
-                 z_hi: Optional[float] = None):
-        self.z = z
-        self.distance_gly = distance_gly
-        self.z_lo = z_lo
-        self.z_hi = z_hi
+class PredictResponse(BaseModel):
+    z: float
+    distance_gly: float | None = None
+    z_lo: float | None = None
+    z_hi: float | None = None

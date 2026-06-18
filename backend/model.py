@@ -42,6 +42,6 @@ def predict_z(images, tabular=None):
     Placeholder fusion: tabular present -> baseline.predict; else -> image.predict."""
     baseline, image = get_models()
     if tabular is not None:
-        return baseline.predict(tabular).tolist()
+        return baseline.predict(tabular.reshape(-1,16)).tolist()
     else:
         return image.predict(images).tolist()

@@ -14,6 +14,7 @@ from .features import preprocess_image, tabular_features
 from .model import load_models, get_models, predict_z
 from .cosmology import z_to_distance_gly
 
+
 # TODO (task 07): build the app:
 #   - an async lifespan handler that calls load_models() then `yield`
 #   - app = FastAPI(title=settings.TITLE, lifespan=lifespan)
@@ -35,7 +36,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.get("/")
 def health():
     baseline, image = get_models()
@@ -52,3 +52,62 @@ def health():
 #   predict_z(imgs, feats) -> z; return PredictResponse(z=z, distance_gly=z_to_distance_gly(z)).
 
 # raise NotImplementedError("implement the app — task 07 (health) then task 10 (predict)")
+
+
+@app.post("/predict", response_model=PredictResponse)
+def predict(
+    file: UploadFile = File(...),
+    ra: float = Form(...),
+    dec: float = Form(...),
+    tabular: str | None = Form(None),
+):
+    # 1. Load and validate the .npy cutout
+    try:
+        contents = file.file.read()
+        # Reset stream just in case, though read() usually consumes it
+        file.file.seek(0)
+        cutout = np.load(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid .npy file: {e}")
+
+    # 2. Preprocess the image
+    try:
+        images = preprocess_image(cutout)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # 3. Parse tabular data if provided
+    tabular_data = None
+    if tabular is not None:
+        try:
+            row = json.loads(tabular)
+            X, mask = tabular_features(row)
+            # Apply mask if it's a boolean mask and not all True
+            if hasattr(mask, 'dtype') and mask.dtype == bool:
+                tabular_data = X[mask] if mask.any() else X
+            else:
+                # If mask is indices or something else, adjust accordingly
+                # For now assuming boolean mask logic as before
+                tabular_data = X
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Error processing tabular data: {e}")
+
+    # 4. Run prediction
+    # predict_z handles None for either images or tabular_data
+    z_list = predict_z(images=images, tabular=tabular_data)
+
+    # Assuming predict_z returns a list, take the first element for single prediction
+    if not z_list:
+        raise HTTPException(status_code=500, detail="Prediction returned empty result")
+
+    z = float(z_list[0])
+
+    # 5. Calculate distance and return response
+    try:
+        distance = z_to_distance_gly(z)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating distance: {e}")
+
+    return PredictResponse(z=z, distance_gly=distance)
