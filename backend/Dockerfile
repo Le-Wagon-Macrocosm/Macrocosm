@@ -1,27 +1,22 @@
-# Backend — FastAPI inference service.
-# Build context = backend/  ->  `docker build -t macrocosm-backend backend/`
-FROM python:3.10-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# Serving image for the FastAPI photo-z API.
+# Build from the REPO ROOT (the COPY paths below are repo-relative):
+#   docker build -f backend/Dockerfile -t macrocosm-api .
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# deps first for better layer caching
-COPY requirements.txt .
+# Deps first for layer caching. requirements pins scikit-learn to the pickle's
+# version (1.9.0), whose Python>=3.11 floor is satisfied by python:3.12.
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# app code
-COPY . .
+# App code + the two model artifacts the lifespan loads.
+COPY backend/ ./backend/
+COPY models/baseline_stack.pkl models/fake_image_model.pkl ./models/
 
-# run as non-root
-RUN useradd -m appuser
-USER appuser
+# Paths the app reads (config.py honors these env vars).
+ENV BASELINE_PATH=models/baseline_stack.pkl \
+    IMAGE_MODEL_PATH=models/fake_image_model.pkl
 
-# Cloud Run injects $PORT (default 8080); HF Spaces expects 7860.
-# The model is loaded at startup from $MODEL_URI (e.g. gs://… on Cloud Run) — pass it at runtime.
-ENV PORT=8080
-EXPOSE 8080
-
-# main.py lives at the build-context root -> module "main"
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+EXPOSE 8000
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

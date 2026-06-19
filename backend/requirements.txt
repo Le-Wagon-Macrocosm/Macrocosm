@@ -1,29 +1,26 @@
-# Backend (FastAPI inference service) — runtime deps only.
+# Backend (FastAPI inference service) — runtime deps, pinned with == (lock policy).
+# Resolved on Python 3.12; CI/serving run on 3.12 because scikit-learn 1.9.0 (below)
+# requires Python >=3.11.
 #
-# Lock policy: pin everything with ==. These are starting pins; once the team
-# installs in the shared env, run `pip freeze > backend/requirements.txt` to
-# lock the exact resolved versions (same env used to train/serialize the model
-# — sklearn/xgboost pickles are NOT portable across versions).
+# scikit-learn MUST match the version baseline_stack.pkl was serialized with — its
+# 'sklearn_version' is 1.9.0 (verified by loading the pickle). sklearn pickles are
+# NOT portable across versions, so do not bump this without re-exporting the model.
 #
-# Heavy training deps (astroquery, the DL framework for *training*, etc.) belong
-# in scripts/requirements.txt, NOT here — keep the serving image slim.
+# Heavy training deps (astroquery, the DL framework for *training*, etc.) belong in
+# scripts/requirements.txt, NOT here — keep the serving image slim.
 
 # --- web / serving ---
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-python-multipart==0.0.20        # multipart/form-data uploads (the cutout file)
-pydantic==2.10.4
+fastapi==0.137.2
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32        # multipart/form-data uploads (the cutout file)
+pydantic==2.13.4
 
 # --- arrays / model I/O ---
-numpy==2.2.1
+numpy==2.4.6
+joblib==1.5.3
 
-# --- model storage: load MODEL_URI from gs:// ---
-google-cloud-storage==2.19.0
+# --- baseline model runtime (unpickles + runs baseline_stack.pkl) ---
+scikit-learn==1.9.0             # MUST equal the pickle's sklearn_version
 
-# --- baseline model runtime (ships first) ---
-scikit-learn==1.6.1
-xgboost==2.1.3
-
-# --- optional, enable when needed ---
-# torch==2.5.1                   # when the *served* model is the CNN
-# astropy==7.0.1                 # if /predict accepts FITS cutouts (not just .npy)
+# --- cosmology: z -> distance ---
+astropy==8.0.0

@@ -77,3 +77,27 @@ make backend                          # run the FastAPI backend
 ```
 
 The committed **`.python-version`** names the virtualenv (`macrocosm`) so everyone uses the same one. **`requirements.txt`** = local dev / data-science stack (pulls in the backend deps); **`backend/requirements.txt`** = the lean deps the API container ships (also what CI installs). Training runs on Colab, data build on SciServer — see the KB.
+
+## Environment & data access (`.env` / GCS)
+
+Config lives in a single **`.env`** (gitignored). GCS access uses **your own Google account** — your Gmail already has IAM on the bucket, so no shared key is needed.
+
+**One-time setup**
+
+1. `cp .env.sample .env`  (edit `GOOGLE_CLOUD_PROJECT` if needed; leave `GOOGLE_APPLICATION_CREDENTIALS` unset)
+2. Log in with the **Gmail that was added to the project**:
+   ```bash
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project macrocosm-lewagon
+   ```
+3. Load the `.env`:
+   - **VS Code**: nothing to do — the Python/Jupyter extension reads `.env` automatically. Reload the window after editing it.
+   - **Terminal (zsh + direnv)**: `direnv allow .` (install once with `brew install direnv` / `sudo apt install -y direnv`, then add `direnv` to your `.zshrc` plugins — same as the ML-Ops module).
+4. Verify from your venv:
+   ```python
+   import gcsfs
+   print(gcsfs.GCSFileSystem().ls("macrocosm-lewagon/data/sample_v1")[:3])   # should list the catalog/shards
+   ```
+   Then `pd.read_parquet(os.environ["CATALOG_GCS"])` reads straight from GCS.
+
+🚨 **`403 Forbidden`?** The usual cause is `GOOGLE_APPLICATION_CREDENTIALS` being set (often to the Le Wagon bootcamp SA from another challenge), which **overrides** your personal login. `unset GOOGLE_APPLICATION_CREDENTIALS` (and remove it from any `.env`/`.zshrc`), then re-run. Last resort: use the shared `sciserver-uploader.json` key (see the commented line in `.env.sample`). Never commit `.env` or any `*.json` key.

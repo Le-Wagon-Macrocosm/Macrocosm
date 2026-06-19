@@ -1,78 +1,107 @@
-"""Macrocosm backend — FastAPI inference service.
-
-Minimal scaffold: the full API surface is defined, but the real handlers are
-stubs that return **501 Not Implemented** until the model lands. `/health` is
-kept live so `make backend` can confirm the server boots.
-
-Run locally: `make backend`  (http://localhost:8000, docs at /docs)
-"""
+"""FastAPI app — single fused /predict (image + optional tabular -> z, distance).
+TASK 07 -> app + lifespan + CORS + GET "/" ; TASK 10 -> POST "/predict"."""
+import io
+import json
 from contextlib import asynccontextmanager
-from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+import numpy as np
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-# --- model lifecycle -------------------------------------------------------
-# The model is loaded ONCE at startup from $MODEL_URI (e.g. gs://… on Cloud Run)
-# and kept in memory for every request. Placeholder for now.
-MODEL = None
+from .config import settings
+from .schemas import TabularInput, PredictResponse
+from .features import preprocess_image, tabular_features
+from .model import load_models, get_models, predict_z
+from .cosmology import z_to_distance_gly
 
+
+# TODO (task 07): build the app:
+#   - an async lifespan handler that calls load_models() then `yield`
+#   - app = FastAPI(title=settings.TITLE, lifespan=lifespan)
+#   - app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS, ...)
+#   - @app.get("/") health route -> {"status":"ok", model names, "input_shape": settings.IMG_SHAPE}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global MODEL
-    # TODO: load model from os.environ["MODEL_URI"] into MODEL (download from GCS -> RAM)
+    load_models()
     yield
-    # TODO: cleanup if needed
 
 
-app = FastAPI(title="Macrocosm", version="0.0.1", lifespan=lifespan)
+app = FastAPI(title=settings.TITLE, lifespan=lifespan)
 
-# TODO: enable CORS for the GitHub Pages frontend origin (front/back are separate):
-#   from fastapi.middleware.cors import CORSMiddleware
-#   app.add_middleware(CORSMiddleware, allow_origins=["https://<org>.github.io"],
-#                      allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],  # comma-separated -> list
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-# --- schemas ---------------------------------------------------------------
-class PredictionResponse(BaseModel):
-    z: float
-    distance_gly: float
-    z_lo: Optional[float] = None      # uncertainty placeholders — filled in later
-    z_hi: Optional[float] = None
-
-
-class ModelInfo(BaseModel):
-    name: str
-    version: str
-    loaded: bool
-
-
-# --- endpoints -------------------------------------------------------------
 @app.get("/")
-def root():
-    """Service info."""
-    return {"service": "macrocosm", "docs": "/docs"}
-
-
-@app.get("/health")
 def health():
-    """Liveness check (used by Cloud Run / monitoring)."""
-    return {"status": "ok"}
+    baseline, image = get_models()
+    return {
+        "status": "ok",
+        "tabular_model": type(baseline).__name__,
+        "image_model":   type(image).__name__,
+        "input_shape":   settings.IMG_SHAPE,
+    }
+
+# TODO (task 10): add @app.post("/predict", response_model=PredictResponse):
+#   read the .npy cutout from the upload -> preprocess_image (ValueError -> HTTP 422);
+#   if a tabular JSON part is present -> TabularInput -> tabular_features -> (n,16);
+#   predict_z(imgs, feats) -> z; return PredictResponse(z=z, distance_gly=z_to_distance_gly(z)).
+
+# raise NotImplementedError("implement the app — task 07 (health) then task 10 (predict)")
 
 
-@app.get("/model/info", response_model=ModelInfo)
-def model_info():
-    """Which model is currently loaded (supports the baseline→CNN swap)."""
-    raise HTTPException(status_code=501, detail="not implemented")
-
-
-@app.post("/predict", response_model=PredictionResponse)
-async def predict(
-    image: UploadFile = File(..., description=".npy or FITS cutout — (64,64,5) float array"),
-    tabular: Optional[str] = Form(None, description="photometry as a JSON string"),
-    ra: Optional[float] = Form(None, description="RA in degrees (for placing in 3D)"),
-    dec: Optional[float] = Form(None, description="Dec in degrees"),
+@app.post("/predict", response_model=PredictResponse)
+def predict(
+    file: UploadFile = File(...),
+    ra: float | None = Form(None),    # optional; reserved for placing the prediction in 3D
+    dec: float | None = Form(None),
+    tabular: str | None = Form(None),
 ):
-    """Predict redshift z (+ distance) from a single galaxy cutout."""
-    raise HTTPException(status_code=501, detail="not implemented")
+    # 1. Load and validate the .npy cutout
+    try:
+        contents = file.file.read()
+        # Reset stream just in case, though read() usually consumes it
+        file.file.seek(0)
+        cutout = np.load(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid .npy file: {e}")
+
+    # 2. Preprocess the image
+    try:
+        images = preprocess_image(cutout)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # 3. Parse tabular data if provided: JSON -> TabularInput (validate) -> engineered (16,)
+    tabular_data = None
+    if tabular is not None:
+        try:
+            row = TabularInput(**json.loads(tabular)).model_dump()
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Invalid tabular fields: {e}")
+        X, _mask = tabular_features(row)
+        tabular_data = X
+
+    # 4. Run prediction
+    # predict_z handles None for either images or tabular_data
+    z_list = predict_z(images=images, tabular=tabular_data)
+
+    # Assuming predict_z returns a list, take the first element for single prediction
+    if not z_list:
+        raise HTTPException(status_code=500, detail="Prediction returned empty result")
+
+    z = float(z_list[0])
+
+    # 5. Calculate distance and return response
+    try:
+        distance = z_to_distance_gly(z)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating distance: {e}")
+
+    return PredictResponse(z=z, distance_gly=distance)
