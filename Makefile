@@ -41,11 +41,14 @@ test:  ## run tests
 	@echo "TODO: pytest"
 
 # ===== docker / deploy (NO venv — image installs deps directly) =====
-# Override on the CLI, e.g.  make deploy PROJECT=my-gcp-proj MODEL_URI=gs://bucket/model.pkl
+# Override on the CLI, e.g.  make deploy PROJECT=my-gcp-proj GCS_KEY=path/to/key.json
 PROJECT   ?= macrocosm-lewagon
 REGION    ?= europe-west1
 SERVICE   ?= macrocosm-backend
-MODEL_URI ?= gs://macrocosm-lewagon/models/model.pkl
+# SA key (Storage Object Viewer on the model bucket) used ONLY at build time to pull the
+# pickles into the image via a BuildKit secret. Never baked into a layer. Keep it gitignored.
+# In CI this is the same GCP_SA_KEY used to deploy; locally, point it at any key with bucket read.
+GCS_KEY   ?= gcp-sa-key.json
 
 # Artifact Registry image coordinates:  REGION-docker.pkg.dev/PROJECT/REPO/IMAGE:TAG
 AR_REPO        ?= macrocosm
@@ -54,11 +57,14 @@ AR_HOST        := $(REGION)-docker.pkg.dev
 BACKEND_IMAGE  := $(AR_HOST)/$(PROJECT)/$(AR_REPO)/macrocosm-backend
 FRONTEND_IMAGE := $(AR_HOST)/$(PROJECT)/$(AR_REPO)/macrocosm-frontend
 
-docker-build:  ## build the backend image locally (simple tag, for local docker run)
-	docker build -t $(SERVICE) backend/
+# BuildKit is required for the --secret mount that feeds the GCS key to the image build.
+DOCKER_BUILD = DOCKER_BUILDKIT=1 docker build -f backend/Dockerfile --secret id=gcs_key,src=$(GCS_KEY)
+
+docker-build:  ## build the backend image locally (pulls models from GCS via the build secret)
+	$(DOCKER_BUILD) -t $(SERVICE) .
 
 publish-backend:  ## build + push the backend image to Artifact Registry
-	docker build -t $(BACKEND_IMAGE):$(TAG) backend/
+	$(DOCKER_BUILD) -t $(BACKEND_IMAGE):$(TAG) .
 	docker push $(BACKEND_IMAGE):$(TAG)
 
 publish-frontend:  ## build + push the frontend image to Artifact Registry
@@ -71,7 +77,6 @@ deploy: publish-backend  ## push the backend image, then deploy it to Cloud Run
 		--project $(PROJECT) \
 		--region $(REGION) \
 		--port 8080 \
-		--set-env-vars MODEL_URI=$(MODEL_URI) \
 		--memory 1Gi \
 		--cpu 1 \
 		--min-instances 0 \
@@ -83,7 +88,8 @@ deploy: publish-backend  ## push the backend image, then deploy it to Cloud Run
 #   gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 #   gcloud artifacts repositories create $(AR_REPO) --repository-format=docker --location=$(REGION) --project=$(PROJECT)
 #   gcloud auth configure-docker $(AR_HOST)      # let docker push to Artifact Registry
-#   grant the Cloud Run service account "Storage Object Viewer" on the model bucket (reads MODEL_URI)
+#   grant the BUILD service account ($(GCS_KEY)) "Storage Object Viewer" on the model bucket
+#   (the models are baked into the image at build time, so Cloud Run itself needs no GCS access)
 
 # ===== MLflow tracking server on a GCP VM (see mlflow/ + KB MCM-A-14) =====
 MLFLOW_VM   ?= macrocosm-mlflow
