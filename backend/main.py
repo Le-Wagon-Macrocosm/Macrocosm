@@ -31,7 +31,7 @@ app = FastAPI(title=settings.TITLE, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],  # comma-separated -> list
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -57,8 +57,8 @@ def health():
 @app.post("/predict", response_model=PredictResponse)
 def predict(
     file: UploadFile = File(...),
-    ra: float = Form(...),
-    dec: float = Form(...),
+    ra: float | None = Form(None),    # optional; reserved for placing the prediction in 3D
+    dec: float | None = Form(None),
     tabular: str | None = Form(None),
 ):
     # 1. Load and validate the .npy cutout
@@ -76,23 +76,17 @@ def predict(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    # 3. Parse tabular data if provided
+    # 3. Parse tabular data if provided: JSON -> TabularInput (validate) -> engineered (16,)
     tabular_data = None
     if tabular is not None:
         try:
-            row = json.loads(tabular)
-            X, mask = tabular_features(row)
-            # Apply mask if it's a boolean mask and not all True
-            if hasattr(mask, 'dtype') and mask.dtype == bool:
-                tabular_data = X[mask] if mask.any() else X
-            else:
-                # If mask is indices or something else, adjust accordingly
-                # For now assuming boolean mask logic as before
-                tabular_data = X
+            row = TabularInput(**json.loads(tabular)).model_dump()
         except json.JSONDecodeError:
             raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
         except Exception as e:
-            raise HTTPException(status_code=422, detail=f"Error processing tabular data: {e}")
+            raise HTTPException(status_code=422, detail=f"Invalid tabular fields: {e}")
+        X, _mask = tabular_features(row)
+        tabular_data = X
 
     # 4. Run prediction
     # predict_z handles None for either images or tabular_data

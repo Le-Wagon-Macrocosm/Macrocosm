@@ -1,12 +1,26 @@
-# TODO (task 08): list the runtime deps, pinned where it matters.
-# The API needs: a web framework + ASGI server, numpy, the pickle loader, the ML library that
-# can UNPICKLE baseline_stack.pkl (version MUST match how it was trained — check the pickle's
-# 'sklearn_version'), a cosmology library for z->distance, multipart form parsing, and pydantic.
-fastapi
-uvicorn[standard]
-numpy
-joblib
-scikit-learn==1.9.0
-astropy
-python-multipart
-pydantic
+# Backend (FastAPI inference service) — runtime deps, pinned with == (lock policy).
+# Resolved on Python 3.12; CI/serving run on 3.12 because scikit-learn 1.9.0 (below)
+# requires Python >=3.11.
+#
+# scikit-learn MUST match the version baseline_stack.pkl was serialized with — its
+# 'sklearn_version' is 1.9.0 (verified by loading the pickle). sklearn pickles are
+# NOT portable across versions, so do not bump this without re-exporting the model.
+#
+# Heavy training deps (astroquery, the DL framework for *training*, etc.) belong in
+# scripts/requirements.txt, NOT here — keep the serving image slim.
+
+# --- web / serving ---
+fastapi==0.137.2
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32        # multipart/form-data uploads (the cutout file)
+pydantic==2.13.4
+
+# --- arrays / model I/O ---
+numpy==2.4.6
+joblib==1.5.3
+
+# --- baseline model runtime (unpickles + runs baseline_stack.pkl) ---
+scikit-learn==1.9.0             # MUST equal the pickle's sklearn_version
+
+# --- cosmology: z -> distance ---
+astropy==8.0.0
