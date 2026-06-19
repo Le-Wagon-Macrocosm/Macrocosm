@@ -6,10 +6,18 @@ const BASE = import.meta.env.BASE_URL
 export async function loadSamples() {
   // TODO: fetch `${BASE}samples/manifest.json`, throw if !res.ok, return res.json()
   //       (an array of { id, name, npy, ra, dec, tabular }).
-  throw new Error('TODO task-03: implement loadSamples()')
+  const res = await fetch(`${BASE}samples/manifest.json`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch manifest: ${res.status} ${res.statusText}`);
+  }
+  return res.json()
 }
 
 export async function fetchNpy(path) {
   // TODO: fetch `${BASE}${path}`, throw if !res.ok, return res.arrayBuffer().
-  throw new Error('TODO task-03: implement fetchNpy()')
+  const res = await fetch(`${BASE}${path}`);
+  if (!res.ok) {
+    throw new Error('implement fetchNpy()')
+  }
+  return res.arrayBuffer()
 }
