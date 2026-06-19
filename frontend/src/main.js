@@ -22,13 +22,16 @@ const TAB_FIELDS = [
 // TODO task-05a: inject one <label>name<input data-tab="name" .../></label> per TAB_FIELDS
 //   into #tabular (prefilled with the example value, type=number, step=any).
 function buildTabularInputs() {
-  // throw new Error('TODO task-05a')
+  $('#tabular').innerHTML = TAB_FIELDS.map(([k, v]) =>
+  `<label>${k}<input data-tab="${k}" type="number" step="any" value="${v}" /></label>`).join('')
 }
 
 // TODO task-05b: read the filled tabular inputs into an object { field: number }.
 //   Skip empty inputs. Return null if none are filled.
 function readTabular() {
-  return null
+  const t = {}
+  document.querySelectorAll('[data-tab]').forEach(el => { if (el.value !== '') t[el.dataset.tab] = parseFloat(el.value) })
+  return Object.keys(t).length ? t : null
 }
 
 // --- given: backend health badge ---
@@ -65,8 +68,21 @@ $('#explore').addEventListener('click', () => {
 //   res = await predict(await file.arrayBuffer(), { ra, dec, tabular });
 //   viz.addGalaxy({ ra, dec, z: res.z, name: file.name }); addResultRow({ name: file.name, ...res }).
 //   Wrap in try/catch -> log(error).
+$('#predict-form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const f = $('#file').files[0];  if (!f) return log('choose a .npy first')
+  const ra = parseFloat($('#ra').value), dec = parseFloat($('#dec').value)
+  log(`predicting ${f.name}…`)
+  try {
+    const res = await predict(await f.arrayBuffer(), { ra, dec, tabular: readTabular() })
+    viz.addGalaxy({ ra, dec, z: res.z, name: f.name });  addResultRow({ name: f.name, ...res })
+    log(`done — z=${res.z.toFixed(3)} · ${res.distance_gly.toFixed(2)} Gly`)
+  } catch (err) { log(`error: ${err.message}`) }
+})
 
 // TODO task-05d: for each input[name="dist"], on "change" call
 //   viz.setDistanceMode(DISTANCE_MODES[radio.value].fn).
+document.querySelectorAll('input[name="dist"]').forEach(r =>
+  r.addEventListener('change', () => viz.setDistanceMode(DISTANCE_MODES[r.value].fn)))
 
 buildTabularInputs()
