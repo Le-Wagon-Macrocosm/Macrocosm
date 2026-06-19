@@ -37,5 +37,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+      # Reuse the SAME GCP_SA_KEY for the build-time model download: the auth step above
+      # already wrote it to a file. That SA must have "Storage Object Viewer" on the bucket.
       - name: Build, push, deploy to Cloud Run
-        run: make deploy
+        run: make deploy GCS_KEY="${{ steps.auth.outputs.credentials_file_path }}"
