@@ -77,11 +77,14 @@ deploy: publish-backend  ## push the backend image, then deploy it to Cloud Run
 		--project $(PROJECT) \
 		--region $(REGION) \
 		--port 8080 \
-		--memory 1Gi \
-		--cpu 1 \
+		--memory 8Gi \
+		--cpu 2 \
+		--cpu-boost \
 		--min-instances 0 \
 		--max-instances 3 \
 		--allow-unauthenticated
+# Memory: the StackingRegressor (RandomForest on ~550k rows) needs several GiB once unpickled
+# (transient decompression peak is higher); 1-4 GiB OOMs at startup. --cpu-boost speeds the load.
 
 # One-time setup:
 #   gcloud auth login
