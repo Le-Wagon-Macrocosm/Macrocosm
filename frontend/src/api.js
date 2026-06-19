@@ -5,7 +5,9 @@ import { API_BASE } from './config.js'
 export async function getHealth() {
   // TODO: GET `${API_BASE}/`, throw if !res.ok, return the parsed JSON
   //       ({ status, tabular_model, image_model, input_shape }).
-  throw new Error('TODO task-01: implement getHealth()')
+  const res = await fetch(`${API_BASE}/`)
+  if (!res.ok) throw new Error(`health ${res.status}: ${await res.text()}`)
+  return res.json()
 }
 
 // npyBytes : ArrayBuffer of a (64,64,5) float32 .npy cutout   (required)
@@ -17,5 +19,12 @@ export async function predict(npyBytes, { ra = null, dec = null, tabular = null 
   //   - "ra"/"dec": String(value)  — skip when null or NaN
   //   - "tabular": JSON.stringify(tabular) — skip when null
   // Throw on !res.ok (include res.status + text); otherwise return res.json().
-  throw new Error('TODO task-01: implement predict()')
+  const fd = new FormData()
+  fd.append('file', new Blob([npyBytes], { type: 'application/octet-stream' }), 'cutout.npy')
+  if (ra !== null && !Number.isNaN(ra))   fd.append('ra',  String(ra))
+  if (dec !== null && !Number.isNaN(dec)) fd.append('dec', String(dec))
+  if (tabular !== null)                   fd.append('tabular', JSON.stringify(tabular))
+  const res = await fetch(`${API_BASE}/predict`, { method: 'POST', body: fd })
+  if (!res.ok) throw new Error(`predict ${res.status}: ${await res.text()}`)
+  return res.json()
 }
