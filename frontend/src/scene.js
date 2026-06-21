@@ -1,6 +1,7 @@
-// TASK 04 — the 3D explorer. The Three.js boilerplate is given; implement the four
-// TODO functions (direction from ra/dec, placing+fitting galaxies, reference rings,
-// dynamic scale bar). Guide: notebooks/tasks-2026-6-19/task-04-3d-scene.md
+// The 3D explorer: galaxies placed by (ra,dec) at a z-derived distance, the scene
+// auto-fits the farthest to a fixed radius, faint reference rings mark round distances,
+// and a dynamic scale bar tracks the Gly-per-screen scale as you zoom.
+// Guide: notebooks/tasks-2026-6-19/task-04-3d-scene.md
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { comovingGly } from './cosmology.js'
@@ -44,38 +45,44 @@ export function createScene(canvas, scaleBarEl) {
   let distanceFn = comovingGly
   let glyPerUnit = 1             // 1 scene unit == glyPerUnit Gly (set by placeAll)
 
-  // TODO task-04a: unit vector pointing at (ra[deg], dec[deg]).
-  //   x = cos(dec)cos(ra), y = sin(dec), z = cos(dec)sin(ra)   (deg -> rad with DEG)
+  // task-04a: unit vector pointing at (ra[deg], dec[deg]).
   function dirFromRaDec(ra, dec) {
-    throw new Error('TODO task-04a: dirFromRaDec')
+    const a = ra * DEG, d = dec * DEG
+    return new THREE.Vector3(Math.cos(d) * Math.cos(a), Math.sin(d), Math.cos(d) * Math.sin(a))
   }
 
-  // TODO task-04b: position every item.
-  //   dists = items.map(it => distanceFn(it.z)); maxGly = max(dists)
-  //   glyPerUnit = maxGly / FIT_RADIUS         // auto-fit so farthest sits at FIT_RADIUS
-  //   each mesh.position = dirFromRaDec(ra,dec) * (dist / glyPerUnit)
-  //   then call rebuildRings(maxGly). Handle the empty list (clear rings, return).
+  // task-04b: position every item and auto-fit so the farthest sits at FIT_RADIUS.
   function placeAll() {
-    throw new Error('TODO task-04b: placeAll')
+    if (!items.length) { rings.clear(); return }
+    const dists = items.map((it) => distanceFn(it.z))
+    const maxGly = Math.max(...dists, 1e-6)
+    glyPerUnit = maxGly / FIT_RADIUS
+    items.forEach((it, i) =>
+      it.mesh.position.copy(dirFromRaDec(it.ra, it.dec).multiplyScalar(dists[i] / glyPerUnit)))
+    rebuildRings(maxGly)
   }
 
-  // TODO task-04c: faint reference rings (in the XZ plane) at round distances.
-  //   step = niceBelow(maxGly/3); for g = step; g <= maxGly; g += step:
-  //     ring radius (scene units) = g / glyPerUnit; add a thin THREE.RingGeometry mesh
-  //     (rotate.x = PI/2). Clear `rings` first.
+  // task-04c: faint reference rings (in the XZ plane) at round distances.
   function rebuildRings(maxGly) {
-    throw new Error('TODO task-04c: rebuildRings')
+    rings.clear()
+    const step = niceBelow(maxGly / 3) || 1
+    for (let g = step; g <= maxGly * 1.001; g += step) {
+      const geo = new THREE.RingGeometry(g / glyPerUnit - 0.02, g / glyPerUnit + 0.02, 96)
+      const ring = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x2a3160, side: THREE.DoubleSide }))
+      ring.rotation.x = Math.PI / 2
+      rings.add(ring)
+    }
   }
 
-  // TODO task-04d: dynamic scale bar (set scaleBarEl width + label).
-  //   camDist = camera.position.distanceTo(controls.target)
-  //   worldPerPx = 2*tan(fov/2 in rad)*camDist / canvas.clientHeight
-  //   glyPerPx = worldPerPx * glyPerUnit
-  //   nice = niceBelow(130 * glyPerPx)               // ~130px target
-  //   scaleBarEl.style.width = (nice/glyPerPx)+'px'; firstElementChild.textContent = fmtGly(nice)
+  // task-04d: dynamic scale bar (set scaleBarEl width + label, ~130px target).
   function updateScaleBar() {
     if (!scaleBarEl) return
-    // (leave as no-op until implemented; the render loop tolerates it)
+    const camDist = camera.position.distanceTo(controls.target)
+    const worldPerPx = (2 * Math.tan((camera.fov / 2) * DEG) * camDist) / canvas.clientHeight
+    const glyPerPx = worldPerPx * glyPerUnit
+    const nice = niceBelow(130 * glyPerPx)
+    scaleBarEl.style.width = `${nice / glyPerPx}px`
+    scaleBarEl.firstElementChild.textContent = fmtGly(nice)
   }
 
   function resize() {

@@ -1,6 +1,5 @@
-// TASK 05 — wire the input panel to the API + scene. The "Explore samples" flow is
-// given as a reference; implement the TODOs (tabular fields, predict form, distance
-// mode). Guide: notebooks/tasks-2026-6-19/task-05-ui-wiring.md
+// Wires the input panel to the API + 3D scene: tabular fields, the predict form,
+// and the distance-measure selector. Guide: notebooks/tasks-2026-6-19/task-05-ui-wiring.md
 import './style.css'
 import { createScene } from './scene.js'
 import { predict, getHealth } from './api.js'
@@ -19,15 +18,13 @@ const TAB_FIELDS = [
   ['petroR90_r', 7.6], ['fracDeV_r', 0.6],
 ]
 
-// TODO task-05a: inject one <label>name<input data-tab="name" .../></label> per TAB_FIELDS
-//   into #tabular (prefilled with the example value, type=number, step=any).
+// task-05a: inject one number input per field into #tabular (prefilled with the example).
 function buildTabularInputs() {
   $('#tabular').innerHTML = TAB_FIELDS.map(([k, v]) =>
   `<label>${k}<input data-tab="${k}" type="number" step="any" value="${v}" /></label>`).join('')
 }
 
-// TODO task-05b: read the filled tabular inputs into an object { field: number }.
-//   Skip empty inputs. Return null if none are filled.
+// task-05b: read the filled tabular inputs into { field: number } (null if none).
 function readTabular() {
   const t = {}
   document.querySelectorAll('[data-tab]').forEach(el => { if (el.value !== '') t[el.dataset.tab] = parseFloat(el.value) })
@@ -63,11 +60,7 @@ $('#explore').addEventListener('click', () => {
   exploreSamples().catch((e) => log(`error: ${e.message}`)).finally(() => { $('#explore').disabled = false })
 })
 
-// TODO task-05c: handle the #predict-form submit.
-//   preventDefault; read the chosen file ($('#file').files[0]); read ra/dec; tabular = readTabular();
-//   res = await predict(await file.arrayBuffer(), { ra, dec, tabular });
-//   viz.addGalaxy({ ra, dec, z: res.z, name: file.name }); addResultRow({ name: file.name, ...res }).
-//   Wrap in try/catch -> log(error).
+// task-05c: predict the user's own .npy cutout (+ optional ra/dec/tabular).
 $('#predict-form').addEventListener('submit', async (e) => {
   e.preventDefault()
   const f = $('#file').files[0];  if (!f) return log('choose a .npy first')
@@ -80,8 +73,7 @@ $('#predict-form').addEventListener('submit', async (e) => {
   } catch (err) { log(`error: ${err.message}`) }
 })
 
-// TODO task-05d: for each input[name="dist"], on "change" call
-//   viz.setDistanceMode(DISTANCE_MODES[radio.value].fn).
+// task-05d: distance-measure selector -> re-fit the scene with the chosen distance fn.
 document.querySelectorAll('input[name="dist"]').forEach(r =>
   r.addEventListener('change', () => viz.setDistanceMode(DISTANCE_MODES[r.value].fn)))
 
