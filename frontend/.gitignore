@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# demo cutouts are intentional small assets (override the repo-wide *.npy ignore)
+!public/samples/*.npy

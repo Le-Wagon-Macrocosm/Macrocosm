@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Macrocosm — photo-z 3D explorer</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="viewport">
+        <canvas id="scene"></canvas>
+        <!-- dynamic scale bar (updates with zoom + distance mode) -->
+        <div id="scalebar"><span>1 Gly</span></div>
+        <!-- distance-measure selector -->
+        <div id="distmode">
+          <label><input type="radio" name="dist" value="comoving" checked /> Comoving</label>
+          <label><input type="radio" name="dist" value="lightTravel" /> Light-travel</label>
+          <label><input type="radio" name="dist" value="luminosity" /> Luminosity</label>
+        </div>
+      </div>
+
+      <aside id="panel">
+        <h1>Macrocosm <span>photo-z explorer</span></h1>
+        <p id="health" class="badge">backend: …</p>
+        <button id="explore">Explore sample galaxies →</button>
+
+        <form id="predict-form" class="card">
+          <h2>Your galaxy</h2>
+          <label class="file">ugriz cutout (.npy)
+            <input id="file" type="file" accept=".npy" required />
+            <small>(64×64×5) float32</small>
+          </label>
+          <div class="grid2">
+            <label>RA<input id="ra" type="number" value="180" step="any" /></label>
+            <label>Dec<input id="dec" type="number" value="0" step="any" /></label>
+          </div>
+          <details>
+            <summary>Tabular features (optional → real baseline)</summary>
+            <div id="tabular" class="grid2"><!-- inputs injected by main.js --></div>
+          </details>
+          <button type="submit">Predict & place →</button>
+        </form>
+
+        <p id="status" class="status">Pick "Explore", or upload your own cutout.</p>
+        <ol id="results"></ol>
+        <footer>Color = redshift (blue→low). Radius = chosen distance from the yellow observer.</footer>
+      </aside>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

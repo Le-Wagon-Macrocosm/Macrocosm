@@ -1,0 +1,162 @@
+[
+  {
+    "id": 0,
+    "name": "Andromeda-like",
+    "npy": "samples/sample_00.npy",
+    "ra": 133.519,
+    "dec": 48.671,
+    "tabular": {
+      "dered_u": 18.0,
+      "dered_g": 16.9,
+      "dered_r": 16.2,
+      "dered_i": 15.9,
+      "dered_z": 15.7,
+      "petroR50_r": 3.85,
+      "petroR90_r": 10.45,
+      "expRad_r": 4.4,
+      "deVRad_r": 4.95,
+      "petroRad_r": 6.6,
+      "fracDeV_r": 0.27
+    }
+  },
+  {
+    "id": 1,
+    "name": "Whirlpool-like",
+    "npy": "samples/sample_01.npy",
+    "ra": 183.334,
+    "dec": -37.499,
+    "tabular": {
+      "dered_u": 18.7,
+      "dered_g": 17.6,
+      "dered_r": 16.9,
+      "dered_i": 16.6,
+      "dered_z": 16.4,
+      "petroR50_r": 3.36,
+      "petroR90_r": 9.12,
+      "expRad_r": 3.84,
+      "deVRad_r": 4.32,
+      "petroRad_r": 5.76,
+      "fracDeV_r": 0.21
+    }
+  },
+  {
+    "id": 2,
+    "name": "Sombrero-like",
+    "npy": "samples/sample_02.npy",
+    "ra": 340.256,
+    "dec": -1.506,
+    "tabular": {
+      "dered_u": 19.2,
+      "dered_g": 18.1,
+      "dered_r": 17.4,
+      "dered_i": 17.1,
+      "dered_z": 16.9,
+      "petroR50_r": 2.8,
+      "petroR90_r": 7.6,
+      "expRad_r": 3.2,
+      "deVRad_r": 3.6,
+      "petroRad_r": 4.8,
+      "fracDeV_r": 0.5
+    }
+  },
+  {
+    "id": 3,
+    "name": "Pinwheel-like",
+    "npy": "samples/sample_03.npy",
+    "ra": 148.972,
+    "dec": 35.554,
+    "tabular": {
+      "dered_u": 19.7,
+      "dered_g": 18.6,
+      "dered_r": 17.9,
+      "dered_i": 17.6,
+      "dered_z": 17.4,
+      "petroR50_r": 2.38,
+      "petroR90_r": 6.46,
+      "expRad_r": 2.72,
+      "deVRad_r": 3.06,
+      "petroRad_r": 4.08,
+      "fracDeV_r": 0.83
+    }
+  },
+  {
+    "id": 4,
+    "name": "Cartwheel-like",
+    "npy": "samples/sample_04.npy",
+    "ra": 270.814,
+    "dec": -2.301,
+    "tabular": {
+      "dered_u": 20.3,
+      "dered_g": 19.2,
+      "dered_r": 18.5,
+      "dered_i": 18.2,
+      "dered_z": 18.0,
+      "petroR50_r": 2.03,
+      "petroR90_r": 5.51,
+      "expRad_r": 2.32,
+      "deVRad_r": 2.61,
+      "petroRad_r": 3.48,
+      "fracDeV_r": 0.77
+    }
+  },
+  {
+    "id": 5,
+    "name": "Cigar-like",
+    "npy": "samples/sample_05.npy",
+    "ra": 94.187,
+    "dec": 56.542,
+    "tabular": {
+      "dered_u": 20.8,
+      "dered_g": 19.7,
+      "dered_r": 19.0,
+      "dered_i": 18.7,
+      "dered_z": 18.5,
+      "petroR50_r": 1.75,
+      "petroR90_r": 4.75,
+      "expRad_r": 2.0,
+      "deVRad_r": 2.25,
+      "petroRad_r": 3.0,
+      "fracDeV_r": 0.61
+    }
+  },
+  {
+    "id": 6,
+    "name": "Tadpole-like",
+    "npy": "samples/sample_06.npy",
+    "ra": 138.223,
+    "dec": -31.931,
+    "tabular": {
+      "dered_u": 21.4,
+      "dered_g": 20.3,
+      "dered_r": 19.6,
+      "dered_i": 19.3,
+      "dered_z": 19.1,
+      "petroR50_r": 1.47,
+      "petroR90_r": 3.99,
+      "expRad_r": 1.68,
+      "deVRad_r": 1.89,
+      "petroRad_r": 2.52,
+      "fracDeV_r": 0.29
+    }
+  },
+  {
+    "id": 7,
+    "name": "Hoag-like",
+    "npy": "samples/sample_07.npy",
+    "ra": 263.684,
+    "dec": 23.433,
+    "tabular": {
+      "dered_u": 21.9,
+      "dered_g": 20.8,
+      "dered_r": 20.1,
+      "dered_i": 19.8,
+      "dered_z": 19.6,
+      "petroR50_r": 1.26,
+      "petroR90_r": 3.42,
+      "expRad_r": 1.44,
+      "deVRad_r": 1.62,
+      "petroRad_r": 2.16,
+      "fracDeV_r": 0.72
+    }
+  }
+]
