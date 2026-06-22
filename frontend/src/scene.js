@@ -5,6 +5,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { comovingGly } from './cosmology.js'
+import { haloTexture } from './galaxyImage.js'
 
 const DEG = Math.PI / 180
 const FIT_RADIUS = 16 // the farthest galaxy is placed at this many scene units
@@ -105,11 +106,13 @@ export function createScene(canvas, scaleBarEl) {
       let mesh
       if (texture) {
         mesh = new THREE.Group()
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthWrite: false }))
-        sprite.scale.set(1.6, 1.6, 1)
+        // soft circular z-colour glow behind the (sky-transparent) galaxy image
         const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-          color: zColor(z), transparent: true, opacity: 0.5, depthWrite: false }))
-        halo.scale.set(1.9, 1.9, 1)
+          map: haloTexture(), color: zColor(z), transparent: true, opacity: 0.5, depthWrite: false }))
+        halo.scale.set(2.6, 2.6, 1)
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: texture, transparent: true, depthWrite: false }))
+        sprite.scale.set(1.6, 1.6, 1)
         mesh.add(halo, sprite)
       } else {
         mesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), new THREE.MeshBasicMaterial({ color: zColor(z) }))
