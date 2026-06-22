@@ -99,8 +99,21 @@ export function createScene(canvas, scaleBarEl) {
   })()
 
   return {
-    addGalaxy({ ra, dec, z, name }) {
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), new THREE.MeshBasicMaterial({ color: zColor(z) }))
+    addGalaxy({ ra, dec, z, name, texture }) {
+      // With a cutout texture: a camera-facing billboard of the actual galaxy image,
+      // ringed in its z-colour. Without one: fall back to a z-coloured sphere.
+      let mesh
+      if (texture) {
+        mesh = new THREE.Group()
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthWrite: false }))
+        sprite.scale.set(1.6, 1.6, 1)
+        const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+          color: zColor(z), transparent: true, opacity: 0.5, depthWrite: false }))
+        halo.scale.set(1.9, 1.9, 1)
+        mesh.add(halo, sprite)
+      } else {
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), new THREE.MeshBasicMaterial({ color: zColor(z) }))
+      }
       mesh.userData = { name, z }
       galaxies.add(mesh)
       items.push({ ra, dec, z, name, mesh })

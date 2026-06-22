@@ -5,6 +5,11 @@ import { createScene } from './scene.js'
 import { predict, getHealth } from './api.js'
 import { loadSamples, fetchNpy } from './samples.js'
 import { DISTANCE_MODES } from './cosmology.js'
+import { npyToTexture } from './galaxyImage.js'
+
+// Build a galaxy-image texture from the cutout bytes; null if it can't be decoded
+// (addGalaxy then falls back to a coloured sphere).
+const textureFor = (buf) => { try { return npyToTexture(buf) } catch { return null } }
 
 const $ = (s) => document.querySelector(s)
 const log = (m) => { $('#status').textContent = m }
@@ -49,8 +54,9 @@ async function exploreSamples() {
   const samples = await loadSamples()
   log(`predicting ${samples.length} galaxies…`)
   for (const s of samples) {
-    const res = await predict(await fetchNpy(s.npy), { ra: s.ra, dec: s.dec, tabular: s.tabular })
-    viz.addGalaxy({ ra: s.ra, dec: s.dec, z: res.z, name: s.name })
+    const buf = await fetchNpy(s.npy)
+    const res = await predict(buf, { ra: s.ra, dec: s.dec, tabular: s.tabular })
+    viz.addGalaxy({ ra: s.ra, dec: s.dec, z: res.z, name: s.name, texture: textureFor(buf) })
     addResultRow({ name: s.name, ...res })
   }
   log(`done — ${samples.length} galaxies. Drag to orbit, scroll to zoom.`)
@@ -67,8 +73,9 @@ $('#predict-form').addEventListener('submit', async (e) => {
   const ra = parseFloat($('#ra').value), dec = parseFloat($('#dec').value)
   log(`predicting ${f.name}…`)
   try {
-    const res = await predict(await f.arrayBuffer(), { ra, dec, tabular: readTabular() })
-    viz.addGalaxy({ ra, dec, z: res.z, name: f.name });  addResultRow({ name: f.name, ...res })
+    const buf = await f.arrayBuffer()
+    const res = await predict(buf, { ra, dec, tabular: readTabular() })
+    viz.addGalaxy({ ra, dec, z: res.z, name: f.name, texture: textureFor(buf) });  addResultRow({ name: f.name, ...res })
     log(`done — z=${res.z.toFixed(3)} · ${res.distance_gly.toFixed(2)} Gly`)
   } catch (err) { log(`error: ${err.message}`) }
 })
