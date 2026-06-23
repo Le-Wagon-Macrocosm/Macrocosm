@@ -7,6 +7,8 @@ import os
 import joblib
 import numpy as np
 from .config import settings
+import tensorflow as tf
+
 
 def _baseline_path():
     return getattr(settings, "BASELINE_PATH",
@@ -14,7 +16,7 @@ def _baseline_path():
 
 def _image_path():
     return getattr(settings, "IMAGE_MODEL_PATH",
-                   os.environ.get("IMAGE_MODEL_PATH", "models/fake_image_model.pkl"))
+                   os.environ.get("IMAGE_MODEL_PATH", "models/dcmdn.keras"))
 
 _baseline = None   # sklearn StackingRegressor (16 features)
 _image = None       # fake image model (.predict((n,S,S,5)) -> (n,))
@@ -25,7 +27,7 @@ def load_models():
     The baseline pickle is a dict {'model','features',...}; the image artifact is a bare model."""
     global _baseline, _image
     _baseline = joblib.load(_baseline_path())["model"]
-    _image = joblib.load(_image_path())
+    _image = tf.keras.models.load_model(_image_path())
     return _baseline, _image
 
 

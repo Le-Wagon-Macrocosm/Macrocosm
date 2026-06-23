@@ -21,6 +21,7 @@ joblib==1.5.3
 
 # --- baseline model runtime (unpickles + runs baseline_stack.pkl) ---
 scikit-learn==1.9.0             # MUST equal the pickle's sklearn_version
+tensorflow==2.21.0
 
 # --- cosmology: z -> distance ---
 astropy==8.0.0
