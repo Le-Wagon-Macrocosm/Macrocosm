@@ -7,7 +7,6 @@ import os
 import joblib
 import numpy as np
 from .config import settings
-import tensorflow as tf
 
 
 def _baseline_path():
@@ -26,8 +25,13 @@ def load_models():
     """Load both artifacts into the module cache and return (baseline, image).
     The baseline pickle is a dict {'model','features',...}; the image artifact is a bare model."""
     global _baseline, _image
-    _baseline = joblib.load(_baseline_path())["model"]
-    _image = tf.keras.models.load_model(_image_path())
+    _baseline = joblib.load(_baseline_path())["model"]            # tabular baseline: always a pickle
+    p = _image_path()
+    if p.endswith((".keras", ".h5")):                            # CNN image model: keras/h5
+        import tensorflow as tf
+        _image = tf.keras.models.load_model(p)
+    else:                                                        # fallback (e.g. the fake .pkl image model / tests)
+        _image = joblib.load(p)
     return _baseline, _image
 
 

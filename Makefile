@@ -2,8 +2,8 @@
 # Single command surface for the whole team. Fill in commands as the code lands.
 .DEFAULT_GOAL := help
 
-# Local dev uses pyenv + Python 3.10.6 (Le Wagon standard). The committed
-# `.python-version` (virtualenv name `macrocosm`) auto-activates it in this dir.
+# Local dev uses pyenv + Python 3.12.9. The committed
+# `.python-version` (virtualenv name `upgrade_macro`) auto-activates it in this dir.
 
 .PHONY: help install backend frontend prepare-data train test docker-build publish-backend publish-frontend deploy clean mlflow-create mlflow-start mlflow-stop mlflow-url
 
@@ -12,8 +12,8 @@ help:  ## list available targets
 
 # ===== local dev (NO Docker) — runs in your active pyenv virtualenv =====
 
-install:  ## install dev deps into the active virtualenv (needs `pyenv local macrocosm` first)
-	@python -c 'import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)' || { echo ">> No virtualenv active. Run:  pyenv virtualenv 3.10.6 macrocosm && pyenv local macrocosm"; exit 1; }
+install:  ## install dev deps into the active virtualenv (needs `pyenv local upgrade_macro` first)
+	@python -c 'import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)' || { echo ">> No virtualenv active. Run:  pyenv virtualenv 3.12.9 upgrade_macro && pyenv local upgrade_macro"; exit 1; }
 	pip install --upgrade pip
 	pip install -r requirements.txt          # local dev / data-science stack (pulls in backend deps)
 
@@ -23,7 +23,7 @@ backend: install  ## run the FastAPI backend locally (auto-reload)
 frontend:  ## run the Three.js frontend locally (node dev server)
 	cd frontend && npm install && npm run dev
 
-clean:  ## remove python caches (the virtualenv is managed by pyenv: `pyenv uninstall macrocosm`)
+clean:  ## remove python caches (the virtualenv is managed by pyenv: `pyenv uninstall upgrade_macro`)
 	find . -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 
 # ===== pipeline (stubs) =====
