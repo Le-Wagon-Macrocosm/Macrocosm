@@ -7,6 +7,7 @@ import os
 import joblib
 import numpy as np
 from .config import settings
+from .dcmdn_model import mdn_loss
 
 
 def _baseline_path():
@@ -29,7 +30,10 @@ def load_models():
     p = _image_path()
     if p.endswith((".keras", ".h5")):                            # CNN image model: keras/h5
         import tensorflow as tf
-        _image = tf.keras.models.load_model(p)
+        _image = tf.keras.models.load_model(
+            p, compile=False
+        )
+
     else:                                                        # fallback (e.g. the fake .pkl image model / tests)
         _image = joblib.load(p)
     return _baseline, _image
@@ -41,6 +45,7 @@ def get_models():
     if _baseline is None or _image is None:
         load_models()
     return _baseline, _image
+
 
 
 def predict_z(images, tabular=None):
