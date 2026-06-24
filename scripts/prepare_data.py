@@ -69,12 +69,16 @@ def cut_group(group):
     A missing/broken frame -> None stamps for the whole group (logged by caller)."""
     run, camcol, field, gals = group
     try:
-        data, wcs = [], None
+        # Each band frame has its OWN astrometric solution (drift-scan: the 5
+        # filters image the sky at different times -> per-band WCS). Keep every
+        # band's WCS and cut each band with its own, so all 5 channels are
+        # centred on (ra,dec) and land registered. Using one band's WCS for all
+        # (the old bug) offset g/r/i/z by the inter-band astrometry (3-11 px).
+        data, wcss = [], []
         for b in BANDS:
             with fits.open(frame_path(run, camcol, field, b)) as hdu:
                 data.append(hdu[0].data)
-                if wcs is None:
-                    wcs = WCS(hdu[0].header)
+                wcss.append(WCS(hdu[0].header))
     except Exception:
         return [(idx, None) for idx, _, _ in gals]
 
@@ -82,8 +86,9 @@ def cut_group(group):
     for idx, ra, dec in gals:
         try:
             pos = SkyCoord(ra, dec, unit="deg")
-            chans = [Cutout2D(d, pos, (_SIZE, _SIZE), wcs=wcs,
-                              mode="partial", fill_value=0).data for d in data]
+            chans = [Cutout2D(d, pos, (_SIZE, _SIZE), wcs=w,
+                              mode="partial", fill_value=0).data
+                     for d, w in zip(data, wcss)]
             out.append((idx, np.stack(chans, -1).astype(_DTYPE)))
         except Exception:
             # galaxy lands off its listed frame (rare SDSS edge case) -> zero-fill
@@ -124,7 +129,7 @@ def main():
                          "this is usually '/home/idies/workspace/SDSS SAS')")
     ap.add_argument("--workers", type=int, default=4, help="parallel processes")
     ap.add_argument("--bucket", default="macrocosm-lewagon")
-    ap.add_argument("--prefix", default="data/sample_v1")
+    ap.add_argument("--prefix", default="data/sample_v2")
     ap.add_argument("--tmp", default="/tmp", help="where to write the shard before upload")
     ap.add_argument("--force", action="store_true", help="rebuild even if output exists")
     args = ap.parse_args()
