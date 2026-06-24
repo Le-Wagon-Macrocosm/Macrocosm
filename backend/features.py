@@ -56,11 +56,10 @@ def tabular_features(row):
     return X, mask
 
 
-def preprocess_image(arr, crop=64):
+def preprocess_image(arr, crop=24, IMG_SHAPE=(24,24,5)):
     """arr: (64,64,5) or (n,64,64,5) -> (n,S,S,5) float32.
     Center-crop to settings.CROP, arcsinh stretch, per-image per-channel normalize.
     Raise ValueError on a wrong-shaped cutout."""
-    IMG_SHAPE = (64,64,5)
 
     # Validate Shape
     if not isinstance(arr, np.ndarray):
@@ -70,7 +69,7 @@ def preprocess_image(arr, crop=64):
         arr = arr[np.newaxis, ...]
 
     if arr.shape[1:] != IMG_SHAPE:
-        raise ValueError(f"Expected (64, 64, 5), got {arr.shape}")
+        raise ValueError(f"Expected IMG_SHAPE, got {arr.shape[1:]}")
 
     # Center Crop
     N, h, w, C = arr.shape

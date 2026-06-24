@@ -12,10 +12,10 @@ class Settings:
     #   CORS_ORIGINS       allowed origins, env "CORS_ORIGINS" comma-separated
     #   TITLE              the API title
     def __init__(self):
-        self.BASELINE_PATH = os.environ.get("BASELINE_PATH", "models/baseline_stack.pkl")
-        self.IMAGE_MODEL_PATH = os.environ.get("IMAGE_MODEL_PATH", "models/dcmdn.keras")
-        self.IMG_SHAPE = (64, 64, 5)
-        self.CROP = int(os.environ.get("CROP", 64))
+        self.BASELINE_PATH = os.environ.get("BASELINE_PATH", "../models/baseline_stack.pkl")
+        self.IMAGE_MODEL_PATH = os.environ.get("IMAGE_MODEL_PATH", "../models/dcmdn.keras")
+        self.IMG_SHAPE = (24, 24, 5)
+        self.CROP = int(os.environ.get("CROP", 24))
         self.TABULAR_FEATURES = ["dered_u","dered_g","dered_r","dered_i","dered_z","g-r","u-g","r-i","i-z","log_expRad_r","log_deVRad_r","log_petroRad_r","log_petroR50_r","log_petroR90_r","fracDeV_r","conc_r"]
         self.RAW_TABULAR_FIELDS = ["dered_u","dered_g","dered_r","dered_i","dered_z","expRad_r","deVRad_r","petroRad_r","petroR50_r","petroR90_r","fracDeV_r"]
         self.CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
