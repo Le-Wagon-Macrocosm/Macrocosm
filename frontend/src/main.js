@@ -50,7 +50,30 @@ function buildTabularInputs() {
     })
   })
   // master toggle: only show + send tabular (→ fusion) when checked; else image-only (CNN+MDN)
-  $('#use-tabular').addEventListener('change', (e) => { $('#tabular').hidden = !e.target.checked })
+  $('#use-tabular').addEventListener('change', (e) => {
+    const on = e.target.checked
+    $('#tabular').hidden = !on; $('#tab-json-box').hidden = !on
+  })
+
+  // paste-JSON -> fill: set each field from the JSON; fields not present are marked absent.
+  $('#tab-json-apply').addEventListener('click', () => {
+    let obj
+    try { obj = JSON.parse($('#tab-json').value) } catch (err) { return log(`bad JSON: ${err.message}`) }
+    if (!obj || typeof obj !== 'object') return log('JSON must be an object of { field: value }')
+    let filled = 0
+    document.querySelectorAll('#tabular .tabrow').forEach(row => {
+      const num = row.querySelector('.tabnum'), rng = row.querySelector('.tabrange'), abs = row.querySelector('.abs')
+      const v = obj[num.dataset.tab]
+      const present = v !== undefined && v !== null && isFinite(v)
+      abs.checked = !present
+      row.classList.toggle('absent', !present)
+      num.disabled = rng.disabled = !present
+      if (present) { num.value = v; rng.value = v; filled++ }   // rng clamps to its [min,max]
+    })
+    if (obj.ra !== undefined && isFinite(obj.ra)) $('#ra').value = obj.ra     // bonus: also fill RA/Dec if present
+    if (obj.dec !== undefined && isFinite(obj.dec)) $('#dec').value = obj.dec
+    log(`filled ${filled} tabular field${filled === 1 ? '' : 's'} from JSON${filled < TAB_FIELDS.length ? ` (${TAB_FIELDS.length - filled} marked absent)` : ''}`)
+  })
 }
 
 // task-05b: tabular dict for the request — null unless the master "Add tabular features" is on.
