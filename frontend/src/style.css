@@ -60,6 +60,14 @@ input[type=number], input[type=file] { width: 100%; min-width: 0; padding: 6px 8
 .usetab input[type=checkbox] { width: 15px; height: 15px; accent-color: #5468ff; cursor: pointer; flex: none; }
 .tabhint { color: #6b709a; font-size: 11px; margin-top: -4px; }
 
+/* paste-JSON -> auto-fill the tabular fields */
+#tab-json-box { display: flex; flex-direction: column; gap: 6px; }
+#tab-json-box[hidden] { display: none; }
+#tab-json { width: 100%; min-width: 0; resize: vertical; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid #2a2f52; background: #0a0d1d; color: #e8eaf2; font: 11px/1.4 ui-monospace, monospace; }
+button.ghost { background: #1a2036; color: #c5c9e6; font-size: 12px; padding: 7px 10px; }
+button.ghost:hover { background: #232a48; }
+
 /* tabular features: per field = "absent" checkbox + number input + slider (linked) */
 #tabular { display: flex; flex-direction: column; gap: 11px; }
 #tabular[hidden] { display: none; }   /* id specificity beats [hidden]'s UA rule, so re-assert it */

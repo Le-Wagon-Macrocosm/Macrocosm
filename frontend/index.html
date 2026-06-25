@@ -39,6 +39,10 @@
             <span>Add tabular features → fusion</span>
           </label>
           <small class="tabhint">Off: image-only (CNN + MDN). On: fusion with the features below.</small>
+          <div id="tab-json-box" hidden>
+            <textarea id="tab-json" rows="2" placeholder='Paste a JSON of features, e.g. {"dered_u":19.2,"dered_g":18.1,...}  — fields not in it are marked absent'></textarea>
+            <button id="tab-json-apply" type="button" class="ghost">Confirm → fill fields</button>
+          </div>
           <div id="tabular" hidden><!-- rows injected by main.js: absent checkbox + value + slider --></div>
           <div class="grid2">
             <button type="submit">Predict & place →</button>
