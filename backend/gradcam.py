@@ -1,125 +1,74 @@
-from backend.features import preprocess_image
-from backend.model import load_models, get_models, predict_z
+"""Grad-CAM for the v4 fusion photo-z stack, w.r.t. the input image.
 
+The fusion model has no image input — it's an MLP+MDN over [3 base | 16 mask | 64 CNN embedding].
+So we compose ONE differentiable graph and back-prop the redshift to the image's conv features:
+
+    image --CNN--> [ last conv feature map | 'embedding' (64) ]
+    fusion_vec = concat([ base(3), mask(16), embedding(64) ])      # base/mask are CONSTANT w.r.t. image
+    z_log1p    = E[ MDN ]  =  sum(pi * mu)   over the fusion output
+    heatmap    = Grad-CAM( d z_log1p / d (last conv map) )
+
+Because the tabular base preds + mask don't depend on the image, the gradient flows only
+image -> conv -> embedding -> fusion -> z, so the heatmap reflects *where in the cutout* the model
+reads the redshift from. The displayed redshift is the MDN point estimate (mu of the top component).
+"""
 import numpy as np
-
 import tensorflow as tf
-import numpy as np
+
+from .model import get_models, embedder, tabular_base_preds, mdn_point
 
 
-
-def predict_z_mdn(predictions):
-    """
-    mdn output: (6000, 15) — 6000 spatial positions, 5 gaussians × 3 params
-    Strategy: mean-pool across spatial dim first, then decode MDN
-    """
-    def decode_mdn_head(raw):
-        # raw: (6000, 15)
-
-        # Step 1 — collapse spatial dimension → (1, 15)
-        raw_pooled = tf.reduce_mean(raw, axis=0, keepdims=True)
-
-        # Step 2 — slice the 5 gaussian components
-        n = raw_pooled.shape[-1] // 3      # = 5
-
-        pi_logits = raw_pooled[:, :n]      # (1, 5)
-        mu        = raw_pooled[:, n:2*n]   # (1, 5)
-        # log_sigma = raw_pooled[:, 2*n:]  # (1, 5) — available if needed
-
-        # Step 3 — softmax logits → mixture weights
-        pi = tf.nn.softmax(pi_logits, axis=-1)
-
-        # Step 4 — weighted mean redshift
-        z = tf.reduce_sum(pi * mu, axis=-1)   # (1,)
-        return z, pi
-
-    z1, pi1 = decode_mdn_head(predictions['mdn1_out'])
-    z2, pi2 = decode_mdn_head(predictions['mdn2_out'])
-
-    # Confidence-weighted combination of both heads
-    confidence1 = tf.reduce_max(pi1, axis=-1)
-    confidence2 = tf.reduce_max(pi2, axis=-1)
-    total = confidence1 + confidence2 + 1e-8
-
-    z_hat = (confidence1 * z1 + confidence2 * z2) / total
-
-    return tf.cast(z_hat, tf.float64)
+def _last_conv_layer(cnn):
+    """Last layer with a rank-4 (spatial) output — the inception block right before global pooling."""
+    for layer in reversed(cnn.layers):
+        try:
+            if len(layer.output.shape) == 4:
+                return layer
+        except Exception:
+            continue
+    raise ValueError("No 4D (conv) feature map found in the CNN.")
 
 
-def explain(preprocess_img: list):
-    # 1. Load model and input
-    baseline, image = get_models()
+def explain(images, X16=None, mask=None):
+    """images: (1,CROP,CROP,5) preprocessed (p99). X16/mask: (16,) tabular or None (-> absent).
+    Returns {'redshift': float, 'heatmap': (CROP,CROP) float32 in [0,1]}."""
+    _stack, cnn, fusion = get_models()
+    emb_model = embedder()
+    conv_layer = _last_conv_layer(cnn)
 
-    # 2. Find last Conv2D layer
-    target_layer_name = None
-    for layer in image.layers:
-        if isinstance(layer, tf.keras.layers.Conv2D):
-            target_layer_name = layer.name
+    # base preds + mask are CONSTANT w.r.t. the image -> bake them in as fixed tensors
+    if X16 is None:
+        X16 = np.full((1, 16), np.nan, "float32")
+        mask = np.zeros((1, 16), "float32")
+    base, m = tabular_base_preds(X16, mask)                  # (1,3), (1,16)
+    base_t, mask_t = tf.constant(base, tf.float32), tf.constant(m, tf.float32)
 
-    if not target_layer_name:
-        raise ValueError("No Conv2D layer found in the model.")
-
-    target_layer = image.get_layer(target_layer_name)
-
-    # 3. Intermediate model: outputs [last_conv_activations, predictions]
-    grad_model = tf.keras.Model(
-        inputs=[image.input],
-        outputs=[target_layer.output, image.output]
-    )
-
-    # 4. Forward pass under GradientTape
-    #    Must cast input to float32 and watch conv_output explicitly —
-    #    tape only auto-watches tf.Variables, not intermediate tensors
-    preprocess_img = tf.cast(preprocess_img, tf.float32)
+    # one graph: image -> [last conv map, 64-d embedding]
+    grad_model = tf.keras.Model(cnn.input, [conv_layer.output, emb_model.output])
+    x = tf.cast(images, tf.float32)
 
     with tf.GradientTape() as tape:
-        conv_output, predictions = grad_model(preprocess_img)
-        tape.watch(conv_output)                      # <-- required
-        z_hat = predict_z_mdn(predictions)           # scalar float64
-        z_scalar = tf.cast(z_hat[0], tf.float32)    # tape needs float32
+        conv_out, emb = grad_model(x, training=False)        # (1,h,w,C), (1,64)
+        tape.watch(conv_out)
+        fvec = tf.concat([base_t, mask_t, emb], axis=1)      # (1,83)
+        raw = fusion(fvec, training=False)                   # (1,15) = [pi(5), mu(5), sigma(5)]
+        K = raw.shape[-1] // 3
+        pi, mu = raw[:, :K], raw[:, K:2 * K]                 # pi already softmax (mdn_pi head)
+        z_log1p = tf.reduce_sum(pi * mu, axis=-1)[0]         # differentiable expected log1p(z)
 
-    # 5. Gradients of redshift prediction w.r.t. conv feature maps
-    #    grads shape: same as conv_output → (6000, H_conv, W_conv, C)
-    grads = tape.gradient(z_scalar, conv_output)
-
+    grads = tape.gradient(z_log1p, conv_out)
     if grads is None:
-        raise ValueError(
-            "Gradients are None — conv_output is not on the gradient path. "
-            "Check that tape.watch(conv_output) is inside the tape block."
-        )
+        raise ValueError("Grad-CAM gradient is None — conv map not on the path to the fusion output.")
 
-    # 6. Grad-CAM formula
-    #    Global average pool gradients over spatial dims → (C,)
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))   # (C,)
+    pooled = tf.reduce_mean(grads, axis=(0, 1, 2))           # (C,)  importance per channel
+    cam = tf.reduce_sum(conv_out[0] * pooled, axis=-1)       # (h,w)
+    cam = tf.nn.relu(cam)                                    # keep positive contributions
+    cam = cam - tf.reduce_min(cam)
+    cam = cam / (tf.reduce_max(cam) + 1e-8)                  # -> [0,1]
 
-    #    Weight each feature map channel by its pooled gradient
-    #    conv_output: (6000, H_conv, W_conv, C)
-    #    pooled_grads[tf.newaxis, tf.newaxis, tf.newaxis, :] → broadcasts over spatial
-    cam = tf.reduce_sum(
-        conv_output * pooled_grads[tf.newaxis, tf.newaxis, tf.newaxis, :],
-        axis=-1
-    )                                                       # (6000, H_conv, W_conv)
+    H, W = int(x.shape[1]), int(x.shape[2])
+    cam = tf.image.resize(cam[None, ..., None], [H, W], method="bilinear")
+    heatmap = tf.squeeze(cam).numpy().astype("float32")      # (H,W)
 
-    # 7. Pool over the 6000 spatial positions → (H_conv, W_conv)
-    cam = tf.reduce_mean(cam, axis=0)
-
-    # 8. Normalize
-    cam = tf.nn.relu(cam)                          # discard negative contributions
-    cam = cam - tf.reduce_min(cam)                 # shift floor to 0
-    cam = cam / (tf.reduce_max(cam) + 1e-8)       # scale to [0, 1]
-
-    # 9. Upsample to original input spatial size
-    #    tf.image.resize expects (batch, H, W, channels)
-    H, W = preprocess_img.shape[1], preprocess_img.shape[2]
-
-    cam_resized = tf.image.resize(
-        tf.reshape(cam, (1, cam.shape[0], cam.shape[1], 1)),
-        size=[H, W],
-        method=tf.image.ResizeMethod.BILINEAR
-    )
-    cam_resized = tf.squeeze(cam_resized).numpy()  # (H, W)
-
-    return {
-        "redshift": float(z_scalar.numpy()),
-        "heatmap": cam_resized                     # (H, W) float32 array in [0, 1]
-    }
+    z = float(np.expm1(mdn_point(raw.numpy()))[0])           # displayed point estimate (expm1 of mu*)
+    return {"redshift": z, "heatmap": heatmap}

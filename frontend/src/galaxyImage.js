@@ -33,10 +33,9 @@ function bandPercentile(data, c, band, n, p) {
 // then asinh(Q·I)/asinh(Q) applied as a per-pixel scale so hue is preserved. Q=8 (viewer default).
 const Q = 8
 
-// ArrayBuffer of a (H,W,5) ugriz cutout -> THREE.CanvasTexture (sRGB). The background
-// comes out BLACK (sky normalizes to ~0); the scene draws galaxies with additive
-// blending so the black background vanishes and only the galaxy glows — no alpha/halo.
-export function npyToTexture(buf) {
+// ArrayBuffer of a (H,W,5) ugriz cutout -> an HTMLCanvasElement with the Lupton gri composite
+// (black sky). Shared by the 3D texture and the Grad-CAM overlay so both show the same image.
+export function npyToCanvas(buf) {
   const { h, w, c, data } = parseNpy(buf)
   const n = h * w
   // per-band normalize: 1 / (99th percentile) for each of u, g, r, i, z
@@ -63,8 +62,14 @@ export function npyToTexture(buf) {
     img.data[p * 4 + 3] = 255
   }
   ctx.putImageData(img, 0, 0)
+  return canvas
+}
 
-  const tex = new THREE.CanvasTexture(canvas)
+// ArrayBuffer of a (H,W,5) ugriz cutout -> THREE.CanvasTexture (sRGB). The background
+// comes out BLACK (sky normalizes to ~0); the scene draws galaxies with additive
+// blending so the black background vanishes and only the galaxy glows — no alpha/halo.
+export function npyToTexture(buf) {
+  const tex = new THREE.CanvasTexture(npyToCanvas(buf))
   tex.colorSpace = THREE.SRGBColorSpace
   tex.magFilter = THREE.LinearFilter
   tex.minFilter = THREE.LinearFilter

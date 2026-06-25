@@ -28,3 +28,16 @@ export async function predict(npyBytes, { ra = null, dec = null, tabular = null 
   if (!res.ok) throw new Error(`predict ${res.status}: ${await res.text()}`)
   return res.json()
 }
+
+// Grad-CAM saliency for one cutout.
+// npyBytes : ArrayBuffer of a (24,24,5) float32 .npy cutout   (required)
+// opts     : { tabular?:object }  — optional; sharpens redshift, heatmap is image-only
+// returns  : { redshift:number, heatmap:number[][] }  (CROP x CROP, values in [0,1])
+export async function explain(npyBytes, { tabular = null } = {}) {
+  const fd = new FormData()
+  fd.append('file', new Blob([npyBytes], { type: 'application/octet-stream' }), 'cutout.npy')
+  if (tabular !== null) fd.append('tabular', JSON.stringify(tabular))
+  const res = await fetch(`${API_BASE}/explain`, { method: 'POST', body: fd })
+  if (!res.ok) throw new Error(`explain ${res.status}: ${await res.text()}`)
+  return res.json()
+}

@@ -7,11 +7,12 @@
 #     --secret id=gcs_key,src=gcp-sa-key.json -t macrocosm-backend .
 
 # --- stage 1: pull the model artifacts from GCS (throwaway; has the SA key + gcs client) ---
+# v4 fusion stack: tabular bases (664MB) + image CNN + fusion head + tabular medians.
 FROM python:3.12-slim AS models
 RUN pip install --no-cache-dir google-cloud-storage
 RUN --mount=type=secret,id=gcs_key \
     GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcs_key \
-    python -c "import os; from google.cloud import storage; os.makedirs('/models', exist_ok=True); b=storage.Client().bucket('macrocosm-lewagon'); [b.blob('models/'+n).download_to_filename('/models/'+n) for n in ('baseline_stack.pkl','fake_image_model.pkl')]"
+    python -c "import os; from google.cloud import storage; os.makedirs('/models', exist_ok=True); b=storage.Client().bucket('macrocosm-lewagon'); [b.blob('models/'+n).download_to_filename('/models/'+n) for n in ('baseline_stack_v4.pkl','photoz_cnn_v4.h5','fusion_v4.keras','tabular_medians_v4.npy')]"
 
 # --- stage 2: runtime image (no SA key, no gcs client baked in) ---
 FROM python:3.12-slim
@@ -25,8 +26,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY --from=models /models ./models
 
-ENV BASELINE_PATH=models/baseline_stack.pkl \
-    IMAGE_MODEL_PATH=models/fake_image_model.pkl
+ENV BASELINE_PATH=models/baseline_stack_v4.pkl \
+    CNN_MODEL_PATH=models/photoz_cnn_v4.h5 \
+    FUSION_MODEL_PATH=models/fusion_v4.keras \
+    MEDIANS_PATH=models/tabular_medians_v4.npy
 
 # Cloud Run sets $PORT (defaults to 8080) and routes to it; fall back to 8080 locally.
 EXPOSE 8080

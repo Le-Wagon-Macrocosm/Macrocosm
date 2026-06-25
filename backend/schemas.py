@@ -24,3 +24,9 @@ class PredictResponse(BaseModel):
     distance_gly: Optional[float] = None
     z_lo: Optional[float] = None
     z_hi: Optional[float] = None
+
+
+class ExplainResponse(BaseModel):
+    """Grad-CAM saliency for one cutout: the redshift point estimate + a CROP x CROP heatmap in [0,1]."""
+    redshift: float
+    heatmap: list[list[float]]

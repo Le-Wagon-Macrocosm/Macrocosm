@@ -2,10 +2,11 @@
 // and the distance-measure selector. Guide: notebooks/tasks-2026-6-19/task-05-ui-wiring.md
 import './style.css'
 import { createScene } from './scene.js'
-import { predict, getHealth } from './api.js'
+import { predict, explain, getHealth } from './api.js'
 import { loadSamples, fetchNpy } from './samples.js'
 import { DISTANCE_MODES } from './cosmology.js'
 import { npyToTexture } from './galaxyImage.js'
+import { showGradcam } from './gradcam.js'
 
 // Build a galaxy-image texture from the cutout bytes; null if it can't be decoded
 // (addGalaxy then falls back to a coloured sphere).
@@ -38,7 +39,7 @@ function readTabular() {
 
 // --- given: backend health badge ---
 getHealth()
-  .then((h) => { $('#health').textContent = `backend: ${h.status} · ${h.tabular_model}`; $('#health').classList.add('ok') })
+  .then((h) => { $('#health').textContent = `backend: ${h.status} · ${h.tabular_stack || h.tabular_model || ''}`; $('#health').classList.add('ok') })
   .catch((e) => { $('#health').textContent = `backend: offline (${e.message})` })
 
 // --- given helper ---
@@ -78,6 +79,20 @@ $('#predict-form').addEventListener('submit', async (e) => {
     viz.addGalaxy({ ra, dec, z: res.z, name: f.name, texture: textureFor(buf) });  addResultRow({ name: f.name, ...res })
     log(`done — z=${res.z.toFixed(3)} · ${res.distance_gly.toFixed(2)} Gly`)
   } catch (err) { log(`error: ${err.message}`) }
+})
+
+// Grad-CAM: explain the chosen .npy cutout — overlay the model's saliency on the galaxy.
+$('#explain-btn').addEventListener('click', async () => {
+  const f = $('#file').files[0];  if (!f) return log('choose a .npy first')
+  $('#explain-btn').disabled = true
+  log(`explaining ${f.name}…`)
+  try {
+    const buf = await f.arrayBuffer()
+    const res = await explain(buf, { tabular: readTabular() })
+    showGradcam($('#gradcam'), buf, res, f.name)
+    log(`Grad-CAM done — ẑ=${res.redshift.toFixed(3)}`)
+  } catch (err) { log(`error: ${err.message}`) }
+  finally { $('#explain-btn').disabled = false }
 })
 
 // task-05d: distance-measure selector -> re-fit the scene with the chosen distance fn.

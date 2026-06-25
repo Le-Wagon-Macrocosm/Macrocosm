@@ -61,3 +61,10 @@ details[open] summary { margin-bottom: 8px; }
 #results li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; background: #11152b; border-radius: 7px; font-size: 13px; }
 #results li span { color: #9aa0c4; white-space: nowrap; }
 footer { margin-top: auto; color: #6b709a; font-size: 11px; border-top: 1px solid #1e2340; padding-top: 10px; }
+
+/* Grad-CAM overlay */
+.gradcam { margin: 10px 0; }
+.gradcam canvas { width: 220px; height: 220px; border-radius: 8px; display: block; image-rendering: auto; box-shadow: 0 1px 6px #0008; }
+.gradcam-cap { font-size: 12px; color: #cdd7e2; margin-top: 6px; }
+.gradcam-cap .muted { color: #8b97a6; }
+#explain-btn { background:#2a3a4f; }

@@ -15,7 +15,6 @@ from .model import load_models, get_models, predict_z
 from .cosmology import z_to_distance_gly
 
 from .gradcam import explain
-import time
 
 # TODO (task 07): build the app:
 #   - an async lifespan handler that calls load_models() then `yield`
@@ -40,13 +39,27 @@ app.add_middleware(
 
 @app.get("/")
 def health():
-    baseline, image = get_models()
+    stack, cnn, fusion = get_models()
     return {
         "status": "ok",
-        "tabular_model": type(baseline).__name__,
-        "image_model":   type(image).__name__,
+        "tabular_stack": type(stack).__name__,
+        "image_cnn":     getattr(cnn, "name", type(cnn).__name__),
+        "fusion_model":  getattr(fusion, "name", type(fusion).__name__),
         "input_shape":   settings.IMG_SHAPE,
     }
+
+
+def parse_tabular(tabular: str | None):
+    """tabular JSON string (or None) -> (X16 with NaN, mask) or None. 422 on bad JSON/fields."""
+    if tabular is None:
+        return None
+    try:
+        row = TabularInput(**json.loads(tabular)).model_dump()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid tabular fields: {e}")
+    return tabular_features(row)          # (X16, mask)
 
 
 # TODO (task 10): add @app.post("/predict", response_model=PredictResponse):
@@ -85,20 +98,10 @@ def predict(
     # Get File Image
     image = get_image(file)
 
-    # 3. Parse tabular data if provided: JSON -> TabularInput (validate) -> engineered (16,)
-    tabular_data = None
-    if tabular is not None:
-        try:
-            row = TabularInput(**json.loads(tabular)).model_dump()
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
-        except Exception as e:
-            raise HTTPException(status_code=422, detail=f"Invalid tabular fields: {e}")
-        X, _mask = tabular_features(row)
-        tabular_data = X
+    # Parse tabular data if provided -> (X16, mask); None -> fusion leans on the image
+    tabular_data = parse_tabular(tabular)
 
-    # 4. Run prediction
-    # predict_z handles None for either images or tabular_data
+    # Run the fused prediction (CNN embedding + tabular bases -> fusion MDN -> z)
     z_list = predict_z(images=image, tabular=tabular_data)
 
     # Assuming predict_z returns a list, take the first element for single prediction
@@ -116,12 +119,20 @@ def predict(
     return PredictResponse(z=z, distance_gly=distance)
 
 @app.post("/explain", response_model=ExplainResponse)
-def explain_route(file: UploadFile = File(...)):
-    # Get File Image
+def explain_route(
+    file: UploadFile = File(...),
+    tabular: str | None = Form(None),   # optional; sharpens the redshift, heatmap is image-only
+):
+    # Get File Image (1, CROP, CROP, 5)
     image = get_image(file)
 
-    result = explain(image)           # one call, gets both ẑ and heatmap
+    # Optional tabular -> (X16, mask); absent -> median-imputed bases + zero mask
+    parsed = parse_tabular(tabular)
+    X16, mask = parsed if parsed is not None else (None, None)
 
-    heatmap = result["heatmap"].tolist()
+    result = explain(image, X16=X16, mask=mask)   # Grad-CAM: redshift + (CROP x CROP) heatmap
 
-    return ExplainResponse(redshift=float(result["redshift"]), heatmap=heatmap)
+    return ExplainResponse(
+        redshift=float(result["redshift"]),
+        heatmap=result["heatmap"].tolist(),
+    )
