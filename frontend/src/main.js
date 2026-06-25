@@ -17,23 +17,51 @@ const log = (m) => { $('#status').textContent = m }
 
 const viz = createScene($('#scene'), $('#scalebar'))
 
-// the 11 raw catalog fields + example values
+// the 11 raw catalog fields: [key, example, sliderMin, sliderMax, step]
 const TAB_FIELDS = [
-  ['dered_u', 19.2], ['dered_g', 18.1], ['dered_r', 17.4], ['dered_i', 17.1], ['dered_z', 16.9],
-  ['expRad_r', 3.2], ['deVRad_r', 3.6], ['petroRad_r', 4.8], ['petroR50_r', 2.8],
-  ['petroR90_r', 7.6], ['fracDeV_r', 0.6],
+  ['dered_u', 19.2, 14, 25, 0.01], ['dered_g', 18.1, 14, 24, 0.01], ['dered_r', 17.4, 13, 23, 0.01],
+  ['dered_i', 17.1, 13, 23, 0.01], ['dered_z', 16.9, 13, 23, 0.01],
+  ['expRad_r', 3.2, 0, 20, 0.1], ['deVRad_r', 3.6, 0, 20, 0.1], ['petroRad_r', 4.8, 0, 25, 0.1],
+  ['petroR50_r', 2.8, 0, 15, 0.1], ['petroR90_r', 7.6, 0, 30, 0.1], ['fracDeV_r', 0.6, 0, 1, 0.01],
 ]
 
-// task-05a: inject one number input per field into #tabular (prefilled with the example).
+// task-05a: per field = an "absent" checkbox + a number input + a slider (number <-> slider linked).
+// Ticking "absent" marks the feature as missing (greys the row; readTabular omits it so the backend's
+// presence mask treats it as absent — the fusion model is trained to run with any subset of features).
 function buildTabularInputs() {
-  $('#tabular').innerHTML = TAB_FIELDS.map(([k, v]) =>
-  `<label>${k}<input data-tab="${k}" type="number" step="any" value="${v}" /></label>`).join('')
+  $('#tabular').innerHTML = TAB_FIELDS.map(([k, v, min, max, step]) => `
+    <div class="tabrow">
+      <label class="tabhead">
+        <input type="checkbox" class="abs" /><span class="abs-x">absent</span>
+        <span class="tabname">${k}</span>
+      </label>
+      <div class="tabctl">
+        <input class="tabnum" data-tab="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${v}" />
+        <input class="tabrange" type="range" min="${min}" max="${max}" step="${step}" value="${v}" />
+      </div>
+    </div>`).join('')
+  $('#tabular').querySelectorAll('.tabrow').forEach(row => {
+    const num = row.querySelector('.tabnum'), rng = row.querySelector('.tabrange'), abs = row.querySelector('.abs')
+    num.addEventListener('input', () => { rng.value = num.value })
+    rng.addEventListener('input', () => { num.value = rng.value })
+    abs.addEventListener('change', () => {
+      row.classList.toggle('absent', abs.checked)
+      num.disabled = rng.disabled = abs.checked
+    })
+  })
+  // master toggle: only show + send tabular (→ fusion) when checked; else image-only (CNN+MDN)
+  $('#use-tabular').addEventListener('change', (e) => { $('#tabular').hidden = !e.target.checked })
 }
 
-// task-05b: read the filled tabular inputs into { field: number } (null if none).
+// task-05b: tabular dict for the request — null unless the master "Add tabular features" is on.
+// When on, read non-absent fields ({ field: number }); absent/empty ones are omitted (presence mask).
 function readTabular() {
+  if (!$('#use-tabular')?.checked) return null      // master off -> image-only path on the backend
   const t = {}
-  document.querySelectorAll('[data-tab]').forEach(el => { if (el.value !== '') t[el.dataset.tab] = parseFloat(el.value) })
+  document.querySelectorAll('#tabular .tabrow').forEach(row => {
+    const abs = row.querySelector('.abs'), num = row.querySelector('.tabnum')
+    if (!abs.checked && num.value !== '') t[num.dataset.tab] = parseFloat(num.value)
+  })
   return Object.keys(t).length ? t : null
 }
 

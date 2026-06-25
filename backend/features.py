@@ -50,6 +50,7 @@ def preprocess_image(arr, crop=None, band_p99=None):
     """arr: (S,S,5) or (n,S,S,5) ugriz nanomaggies, S>=CROP -> (n,CROP,CROP,5) float32.
 
     Center-crop to CROP, then per-band p99 normalize (x / BAND_P99) — exactly the CNN's preproc='p99'.
+    The v4 model was trained on center-crop-24 stamps, so we crop (NOT resize) at inference too.
     Raise ValueError on a wrong-shaped / too-small cutout."""
     crop = settings.CROP if crop is None else crop
     p99 = np.asarray(settings.BAND_P99 if band_p99 is None else band_p99, dtype=np.float32)

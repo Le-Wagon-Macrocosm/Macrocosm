@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .schemas import TabularInput, PredictResponse, ExplainResponse
 from .features import preprocess_image, tabular_features
-from .model import load_models, get_models, predict_z
+from .model import load_models, get_models, predict_z, predict_z_image_only
 from .cosmology import z_to_distance_gly
 
 from .gradcam import explain
@@ -50,7 +50,8 @@ def health():
 
 
 def parse_tabular(tabular: str | None):
-    """tabular JSON string (or None) -> (X16 with NaN, mask) or None. 422 on bad JSON/fields."""
+    """tabular JSON string (or None) -> ((X16 with NaN, mask), n_absent) or None.
+    n_absent = number of absent RAW fields (None among RAW_TABULAR_FIELDS). 422 on bad JSON/fields."""
     if tabular is None:
         return None
     try:
@@ -59,7 +60,13 @@ def parse_tabular(tabular: str | None):
         raise HTTPException(status_code=422, detail="Invalid JSON for tabular data")
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Invalid tabular fields: {e}")
-    return tabular_features(row)          # (X16, mask)
+    n_absent = sum(row.get(f) is None for f in settings.RAW_TABULAR_FIELDS)
+    return tabular_features(row), n_absent          # ((X16, mask), n_absent)
+
+
+def use_image_only(parsed):
+    """True when there's no tabular, or too many raw fields are absent to help the fusion."""
+    return parsed is None or parsed[1] > settings.MAX_ABSENT_TABULAR
 
 
 # TODO (task 10): add @app.post("/predict", response_model=PredictResponse):
@@ -98,11 +105,14 @@ def predict(
     # Get File Image
     image = get_image(file)
 
-    # Parse tabular data if provided -> (X16, mask); None -> fusion leans on the image
-    tabular_data = parse_tabular(tabular)
+    # Parse tabular -> ((X16, mask), n_absent) or None
+    parsed = parse_tabular(tabular)
 
-    # Run the fused prediction (CNN embedding + tabular bases -> fusion MDN -> z)
-    z_list = predict_z(images=image, tabular=tabular_data)
+    # No tabular OR > MAX_ABSENT_TABULAR raw fields absent -> CNN-only MDN; else fusion
+    if use_image_only(parsed):
+        z_list = predict_z_image_only(images=image)
+    else:
+        z_list = predict_z(images=image, tabular=parsed[0])
 
     # Assuming predict_z returns a list, take the first element for single prediction
     if not z_list:
@@ -126,11 +136,13 @@ def explain_route(
     # Get File Image (1, CROP, CROP, 5)
     image = get_image(file)
 
-    # Optional tabular -> (X16, mask); absent -> median-imputed bases + zero mask
+    # No tabular OR too many absent -> Grad-CAM on the CNN's own MDN head; else fusion composite
     parsed = parse_tabular(tabular)
-    X16, mask = parsed if parsed is not None else (None, None)
-
-    result = explain(image, X16=X16, mask=mask)   # Grad-CAM: redshift + (CROP x CROP) heatmap
+    if use_image_only(parsed):
+        result = explain(image, image_only=True)
+    else:
+        X16, mask = parsed[0]
+        result = explain(image, X16=X16, mask=mask)   # Grad-CAM: redshift + (CROP x CROP) heatmap
 
     return ExplainResponse(
         redshift=float(result["redshift"]),

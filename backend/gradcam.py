@@ -29,36 +29,43 @@ def _last_conv_layer(cnn):
     raise ValueError("No 4D (conv) feature map found in the CNN.")
 
 
-def explain(images, X16=None, mask=None):
+def explain(images, X16=None, mask=None, image_only=False):
     """images: (1,CROP,CROP,5) preprocessed (p99). X16/mask: (16,) tabular or None (-> absent).
-    Returns {'redshift': float, 'heatmap': (CROP,CROP) float32 in [0,1]}."""
+    image_only=True -> Grad-CAM on the CNN's own MDN head (no tabular/fusion), matching the
+    image-only /predict path; else the fusion composite. Returns {'redshift', 'heatmap' (CROP,CROP) in [0,1]}."""
     _stack, cnn, fusion = get_models()
-    emb_model = embedder()
     conv_layer = _last_conv_layer(cnn)
-
-    # base preds + mask are CONSTANT w.r.t. the image -> bake them in as fixed tensors
-    if X16 is None:
-        X16 = np.full((1, 16), np.nan, "float32")
-        mask = np.zeros((1, 16), "float32")
-    base, m = tabular_base_preds(X16, mask)                  # (1,3), (1,16)
-    base_t, mask_t = tf.constant(base, tf.float32), tf.constant(m, tf.float32)
-
-    # one graph: image -> [last conv map, 64-d embedding]
-    grad_model = tf.keras.Model(cnn.input, [conv_layer.output, emb_model.output])
     x = tf.cast(images, tf.float32)
 
-    with tf.GradientTape() as tape:
-        conv_out, emb = grad_model(x, training=False)        # (1,h,w,C), (1,64)
-        tape.watch(conv_out)
-        fvec = tf.concat([base_t, mask_t, emb], axis=1)      # (1,83)
-        raw = fusion(fvec, training=False)                   # (1,15) = [pi(5), mu(5), sigma(5)]
-        K = raw.shape[-1] // 3
-        pi, mu = raw[:, :K], raw[:, K:2 * K]                 # pi already softmax (mdn_pi head)
-        z_log1p = tf.reduce_sum(pi * mu, axis=-1)[0]         # differentiable expected log1p(z)
+    if image_only:
+        # back-prop the CNN's own MDN redshift to its last conv map (no tabular branch)
+        grad_model = tf.keras.Model(cnn.input, [conv_layer.output, cnn.output])
+        with tf.GradientTape() as tape:
+            conv_out, raw = grad_model(x, training=False)    # (1,h,w,C), (1,15)
+            tape.watch(conv_out)
+            K = raw.shape[-1] // 3
+            pi, mu = raw[:, :K], raw[:, K:2 * K]
+            z_log1p = tf.reduce_sum(pi * mu, axis=-1)[0]     # differentiable expected log1p(z)
+    else:
+        # base preds + mask are CONSTANT w.r.t. the image -> bake them in as fixed tensors
+        if X16 is None:
+            X16 = np.full((1, 16), np.nan, "float32")
+            mask = np.zeros((1, 16), "float32")
+        base, m = tabular_base_preds(X16, mask)              # (1,3), (1,16)
+        base_t, mask_t = tf.constant(base, tf.float32), tf.constant(m, tf.float32)
+        grad_model = tf.keras.Model(cnn.input, [conv_layer.output, embedder().output])
+        with tf.GradientTape() as tape:
+            conv_out, emb = grad_model(x, training=False)    # (1,h,w,C), (1,64)
+            tape.watch(conv_out)
+            fvec = tf.concat([base_t, mask_t, emb], axis=1)  # (1,83)
+            raw = fusion(fvec, training=False)               # (1,15) = [pi(5), mu(5), sigma(5)]
+            K = raw.shape[-1] // 3
+            pi, mu = raw[:, :K], raw[:, K:2 * K]             # pi already softmax (mdn_pi head)
+            z_log1p = tf.reduce_sum(pi * mu, axis=-1)[0]     # differentiable expected log1p(z)
 
     grads = tape.gradient(z_log1p, conv_out)
     if grads is None:
-        raise ValueError("Grad-CAM gradient is None — conv map not on the path to the fusion output.")
+        raise ValueError("Grad-CAM gradient is None — conv map not on the path to the output.")
 
     pooled = tf.reduce_mean(grads, axis=(0, 1, 2))           # (C,)  importance per channel
     cam = tf.reduce_sum(conv_out[0] * pooled, axis=-1)       # (h,w)
