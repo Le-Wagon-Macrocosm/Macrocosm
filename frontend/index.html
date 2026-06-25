@@ -38,10 +38,14 @@
             <summary>Tabular features (optional → real baseline)</summary>
             <div id="tabular" class="grid2"><!-- inputs injected by main.js --></div>
           </details>
-          <button type="submit">Predict & place →</button>
+          <div class="grid2">
+            <button type="submit">Predict & place →</button>
+            <button id="explain-btn" type="button">Explain (Grad-CAM)</button>
+          </div>
         </form>
 
         <p id="status" class="status">Pick "Explore", or upload your own cutout.</p>
+        <div id="gradcam" class="gradcam"></div>
         <ol id="results"></ol>
         <footer>Color = redshift (blue→low). Radius = chosen distance from the yellow observer.</footer>
       </aside>

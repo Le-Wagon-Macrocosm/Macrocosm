@@ -1,40 +1,26 @@
-"""API contract tests.  TASK 11.
+"""API contract tests for the v4 fusion stack.
 
-Build TINY fixtures (a small fake baseline dict {'model','features'} + the fake image model),
-point BASELINE_PATH / IMAGE_MODEL_PATH at them *before* importing backend.main, then test:
-  - GET /                              -> 200, status "ok"
-  - POST /predict image-only          -> 200, has z + distance_gly
-  - POST /predict image + tabular JSON -> 200
-  - POST /predict a 32x32x5 cutout     -> 422
+Runs against the REAL artifacts under models/ (CI pulls them from GCS; locally they're staged
+by `scripts/get_models.sh` / the dev setup). These check routing, validation and response shape
+— not the model math. The app loads CNN + fusion + tabular stack + medians at startup (lifespan),
+so a missing models/ dir surfaces here as a load error.
 """
-import io, json, tempfile
-import joblib
+import io
+import json
+
 import numpy as np
 import pytest
-from sklearn.linear_model import LinearRegression
 from fastapi.testclient import TestClient
 
-# --- tiny fake model fixtures (built once at collection time) ---
-_TMP = tempfile.mkdtemp()
-joblib.dump({"model": LinearRegression().fit(np.random.rand(30, 16), np.random.rand(30) * 0.4),
-             "features": list(range(16))}, f"{_TMP}/b.pkl")
-
-from backend.fake_model import RandomRedshiftModel
-joblib.dump(RandomRedshiftModel(0), f"{_TMP}/i.pkl")
-
-# Point settings at temp models and reset model cache BEFORE the app is used
-import backend.config, backend.model
-backend.config.settings.BASELINE_PATH = f"{_TMP}/b.pkl"
-backend.config.settings.IMAGE_MODEL_PATH = f"{_TMP}/i.pkl"
-backend.model._baseline = None
-backend.model._image = None
-
 import backend.main
+
+CROP = backend.main.settings.CROP          # 24
+BANDS = backend.main.settings.IMG_SHAPE[-1]  # 5
 
 
 @pytest.fixture(scope="module")
 def client():
-    with TestClient(backend.main.app) as c:
+    with TestClient(backend.main.app) as c:   # triggers lifespan -> load_models()
         yield c
 
 
@@ -48,13 +34,14 @@ def _npy(shape):
 def test_health(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert r.json()["status"] == "ok"
+    j = r.json()
+    assert j["status"] == "ok"
+    assert tuple(j["input_shape"]) == (CROP, CROP, BANDS)
 
 
 def test_predict_image_only(client):
     r = client.post("/predict",
-                    data={"ra": "180.0", "dec": "0.0"},
-                    files={"file": ("c.npy", _npy((64, 64, 5)), "application/octet-stream")})
+                    files={"file": ("c.npy", _npy((CROP, CROP, BANDS)), "application/octet-stream")})
     assert r.status_code == 200
     body = r.json()
     assert "z" in body and "distance_gly" in body
@@ -66,13 +53,31 @@ def test_predict_image_and_tabular(client):
            "petroR90_r": 3.0, "fracDeV_r": 0.5}
     r = client.post("/predict",
                     data={"ra": "180.0", "dec": "0.0", "tabular": json.dumps(tab)},
-                    files={"file": ("c.npy", _npy((64, 64, 5)), "application/octet-stream")})
+                    files={"file": ("c.npy", _npy((CROP, CROP, BANDS)), "application/octet-stream")})
     assert r.status_code == 200
     assert "z" in r.json()
 
 
-def test_predict_wrong_shape_422(client):
+def test_explain_image_only(client):
+    r = client.post("/explain",
+                    files={"file": ("c.npy", _npy((CROP, CROP, BANDS)), "application/octet-stream")})
+    assert r.status_code == 200
+    body = r.json()
+    assert "redshift" in body and "heatmap" in body
+    hm = body["heatmap"]
+    assert len(hm) == CROP and len(hm[0]) == CROP          # CROP x CROP saliency
+    assert all(0.0 <= v <= 1.0 for row in hm for v in row)  # normalized to [0,1]
+
+
+def test_predict_wrong_bands_422(client):
+    # wrong channel count (not a 5-band ugriz cutout) -> ValueError -> 422
     r = client.post("/predict",
-                    data={"ra": "180.0", "dec": "0.0"},
-                    files={"file": ("c.npy", _npy((32, 32, 5)), "application/octet-stream")})
+                    files={"file": ("c.npy", _npy((CROP, CROP, 3)), "application/octet-stream")})
+    assert r.status_code == 422
+
+
+def test_predict_too_small_422(client):
+    # smaller than the crop -> ValueError -> 422
+    r = client.post("/predict",
+                    files={"file": ("c.npy", _npy((CROP - 4, CROP - 4, BANDS)), "application/octet-stream")})
     assert r.status_code == 422
