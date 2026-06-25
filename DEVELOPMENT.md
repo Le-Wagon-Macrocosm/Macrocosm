@@ -15,7 +15,7 @@ Internal setup and workflow reference for the Macrocosm team.
 | **Experiment tracking** | MLflow — VM-hosted, GitHub-org gated (see below) |
 | **Image dataset build** | SciServer Compute Jobs (server-side cutouts → GCS) |
 | **Training** | Colab + GPU (offline; code in `scripts/train.py`) |
-| **Deployment** | Cloud Run (primary) → Hugging Face Spaces (fallback) |
+| **Deployment** | Cloud Run (primary) |
 
 GCP project: `macrocosm-lewagon` · region `europe-west1`. The lead adds you via IAM. Details → KB *GCP workflow*.
 

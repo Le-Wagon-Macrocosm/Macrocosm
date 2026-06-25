@@ -162,8 +162,9 @@ Built at [Le Wagon](https://www.lewagon.com/) Data Science bootcamp, June 2026.
 
 | | |
 |---|---|
+| Hanghang Zhang | |
+| Cathy Zhou | |
+| Anastasia Appalonova | |
+| Mario Rieboldt | |
 | Jose Bagina | |
-| *[teammate]* | |
-| *[teammate]* | |
-| *[teammate]* | |
-| *[teammate]* | |
+| | |
