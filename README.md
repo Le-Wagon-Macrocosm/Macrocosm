@@ -1,103 +1,169 @@
 # Macrocosm
 
-Predicting galaxy **redshift** — and therefore distance — directly from cheap astronomical **images** (SDSS DR17 ugriz), with a FastAPI inference service and an interactive 3D web explorer.
+**Predicting galaxy redshift from astronomical images — and placing every galaxy in a 3D universe you can explore.**
 
-> Le Wagon Data Science final project · 5-person team · 2-week build.
+Macrocosm uses a deep learning fusion model to estimate galaxy redshift (z) directly from 5-band SDSS ugriz cutouts, with optional photometric features for higher accuracy. Predictions are rendered in real time in an interactive 3D web explorer that maps each galaxy's true cosmic distance.
 
-> 📚 The **project plan, architecture, modeling, and all background docs live in the YouTrack Knowledge Base** — https://macrocosm.youtrack.cloud/. This README only covers infrastructure + how to run the code.
+> Le Wagon Data Science final project · 5-person team · 2-week build
+
+**[Live Demo →](https://le-wagon-macrocosm.github.io/Macrocosm)**
 
 ---
 
-## Infrastructure
+## What it does
 
-| Purpose | Tool / location |
+Upload a galaxy image (or use one of our sample galaxies), adjust the available photometric measurements, and Macrocosm will:
+
+1. **Predict the redshift** (z) using a CNN + Mixture Density Network fusion model
+2. **Explain the prediction** with a Grad-CAM saliency map highlighting which pixels drove the estimate
+3. **Place the galaxy** in a live 3D scene — color-coded by redshift, positioned by its inferred distance in gigalight-years
+
+---
+
+## Model Architecture
+
+The system uses a three-stage fusion pipeline trained on ~600k SDSS DR17 galaxies (0 < z < 0.4):
+
+```
+Galaxy image (24×24×5 ugriz)
+    └─► Image CNN ──────────────────────────────► 64-d embedding
+                                                         │
+Tabular features (up to 11 SDSS fields)                  │
+    └─► Tabular Stack (RF + HGB + MLP) ─► 3 predictions  │
+                  + presence mask (16-d) ────────────────►│
+                                                          ▼
+                                             Fusion MLP + MDN (K=5)
+                                                          │
+                                                          ▼
+                                             ẑ  (redshift point estimate)
+                                          + σ  (per-component uncertainty)
+```
+
+**Graceful degradation:** if more than 3 tabular features are missing, the model falls back to the image-only CNN path automatically.
+
+**Training details:**
+- Image CNN: 24×24×5 → 64-d embedding, trained with an MDN head (log1p redshift space)
+- Tabular baseline: stacked ensemble of Random Forest, Histogram Gradient Boosting, and MLP
+- Fusion head: 83-d vector [3 base predictions | 16-d presence mask | 64-d image embedding] → MDN (5 Gaussian components)
+- Data: SDSS DR17 spectroscopic catalog, 24×24 pixel ugriz cutouts via SciServer
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
 |---|---|
-| **Tasks · timeline · Knowledge Base** | **YouTrack** → https://macrocosm.youtrack.cloud/ (log in with GitHub) |
-| **Code** | GitHub org **`Le-Wagon-Macrocosm`**, repo **`Macrocosm`** (this repo) |
-| **CI/CD** | GitHub Actions (`.github/workflows/ci.yml`) — test on PR; deploy to Cloud Run (manual) via the `github-deployer` SA |
-| **Data & model storage** | GCS **`gs://macrocosm-lewagon`** — `data/sample_v1/` (600k catalog + image shards) · `models/` · `mlflow/` |
-| **Experiment tracking** | **MLflow** — VM-hosted, GitHub-org gated (see below) |
-| **Image dataset build** | **SciServer Compute Jobs** (server-side cutouts → GCS) |
-| **Training** | Colab + GPU (offline; code in this repo) |
-| **Deployment** | Cloud Run (primary) → Hugging Face Spaces (fallback) |
-
-GCP project: **`macrocosm-lewagon`** · region **`europe-west1`**. Services: Cloud Storage · Artifact Registry · Cloud Run · Compute Engine (the MLflow VM, CPU, stopped when idle). The lead adds you via IAM. Details → KB *GCP workflow*.
+| **ML / Training** | TensorFlow / Keras, scikit-learn, MLflow, Colab + GPU |
+| **Inference API** | FastAPI, Uvicorn, Astropy |
+| **3D Frontend** | Three.js, Vite, Vanilla JS |
+| **Data Pipeline** | SciServer Compute Jobs, GCS, pandas |
+| **Infrastructure** | GCP Cloud Run (backend), GitHub Pages (frontend), Artifact Registry |
+| **CI/CD** | GitHub Actions |
 
 ---
 
-## MLflow tracking server
+## API
 
-A shared MLflow server gated by **GitHub-org login**, on a small GCP VM you start only while training.
+The backend exposes three endpoints:
 
-```bash
-make mlflow-start          # start the VM (a few min to be ready); make mlflow-stop when done
-make mlflow-url            # print the tracking URL
-```
-
-- **Browser** (view the UI): open the URL → log in with GitHub.
-- **Colab / scripts** (log runs) — the client uses a shared bearer token (no browser flow); `scripts/train.py` already reads these:
-  ```python
-  import os
-  os.environ["MLFLOW_TRACKING_URI"]   = "https://146-148-10-86.sslip.io"
-  os.environ["MLFLOW_TRACKING_TOKEN"] = "<MLFLOW_API_TOKEN>"   # ask the lead
-  ```
-
-Full setup, lifecycle, and gotchas → KB *MLflow tracking server*.
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | Health check — returns loaded model names and input shape |
+| `POST` | `/predict` | Multipart: `.npy` image + optional JSON tabular fields → `{ z, distance_gly, ... }` |
+| `POST` | `/explain` | Same as `/predict` + Grad-CAM saliency heatmap |
 
 ---
 
-## Repository layout
+## Local Development
 
-```
-Macrocosm/
-├── Makefile            # single entrypoint: install · backend · frontend · prepare-data · train · deploy · mlflow-*
-├── scripts/            # freeze_catalog · prepare_data · run_job · build_shards · submit_jobs · pull_tabular · train · check_*
-├── backend/            # FastAPI inference API (main.py · Dockerfile · requirements.txt)
-├── frontend/           # 3D explorer (Three.js) + Dockerfile
-├── mlflow/             # MLflow tracking server (docker-compose · Caddyfile · startup.sh)
-├── .github/workflows/  # CI/CD
-├── CONTRIBUTING.md     # branch / PR conventions
-└── README.md
-```
+**Requirements:** Python 3.12, pyenv, Node.js ≥ 18, Docker (for deployment only)
 
-## Contributing / workflow
-
-`main` is **protected**: branch off `main` → open a PR → green CI (`test`) → merge. Branch names `MCM-XX-short-slug`; reference the YouTrack issue (`MCM-XX`) in the PR. Never commit secrets / SA keys / `.env` / large data. See `CONTRIBUTING.md` + KB *Git workflow & repo governance*.
-
-## Getting started (local dev)
-
-We use **pyenv** + Python **3.10.6** (Le Wagon standard). One-time:
+### Backend
 
 ```bash
 git clone https://github.com/Le-Wagon-Macrocosm/Macrocosm.git && cd Macrocosm
-pyenv virtualenv 3.10.6 macrocosm     # create the project virtualenv
-pyenv local macrocosm                 # auto-activate it here (reads .python-version)
-make install                          # install deps into it
-make backend                          # run the FastAPI backend
+
+pyenv virtualenv 3.12.9 upgrade_macro
+pyenv local upgrade_macro
+
+cp .env.sample .env
+# edit .env: set GOOGLE_CLOUD_PROJECT=macrocosm-lewagon
+
+gcloud auth application-default login
+gcloud auth application-default set-quota-project macrocosm-lewagon
+
+make install
+make backend        # FastAPI on http://localhost:8000
 ```
 
-The committed **`.python-version`** names the virtualenv (`macrocosm`) so everyone uses the same one. **`requirements.txt`** = local dev / data-science stack (pulls in the backend deps); **`backend/requirements.txt`** = the lean deps the API container ships (also what CI installs). Training runs on Colab, data build on SciServer — see the KB.
+To run without GCS access (no real model artifacts needed):
 
-## Environment & data access (`.env` / GCS)
+```bash
+bash scripts/get_fake_model.sh   # downloads stub models for local testing
+make backend
+```
 
-Config lives in a single **`.env`** (gitignored). GCS access uses **your own Google account** — your Gmail already has IAM on the bucket, so no shared key is needed.
+### Frontend
 
-**One-time setup**
+```bash
+make frontend       # Vite dev server on http://localhost:5173
+```
 
-1. `cp .env.sample .env`  (edit `GOOGLE_CLOUD_PROJECT` if needed; leave `GOOGLE_APPLICATION_CREDENTIALS` unset)
-2. Log in with the **Gmail that was added to the project**:
-   ```bash
-   gcloud auth application-default login
-   gcloud auth application-default set-quota-project macrocosm-lewagon
-   ```
-3. Load the `.env`:
-   - **VS Code**: nothing to do — the Python/Jupyter extension reads `.env` automatically. Reload the window after editing it.
-   - **Terminal (zsh + direnv)**: `direnv allow .` (install once with `brew install direnv` / `sudo apt install -y direnv`, then add `direnv` to your `.zshrc` plugins — same as the ML-Ops module).
-4. Verify from your venv:
-   ```python
-   import gcsfs
-   print(gcsfs.GCSFileSystem().ls("macrocosm-lewagon/data/sample_v1")[:3])   # should list the catalog/shards
-   ```
-   Then `pd.read_parquet(os.environ["CATALOG_GCS"])` reads straight from GCS.
+The frontend reads `VITE_API_BASE` to point at the backend. In development it defaults to `http://localhost:8000`.
 
-🚨 **`403 Forbidden`?** The usual cause is `GOOGLE_APPLICATION_CREDENTIALS` being set (often to the Le Wagon bootcamp SA from another challenge), which **overrides** your personal login. `unset GOOGLE_APPLICATION_CREDENTIALS` (and remove it from any `.env`/`.zshrc`), then re-run. Last resort: use the shared `sciserver-uploader.json` key (see the commented line in `.env.sample`). Never commit `.env` or any `*.json` key.
+### Tests
+
+```bash
+pytest -q backend/tests/
+```
+
+---
+
+## Repository Layout
+
+```
+Macrocosm/
+├── backend/            # FastAPI inference service
+│   ├── main.py         # API routes (/predict, /explain, health)
+│   ├── model.py        # Model loading, fusion prediction, MDN decoding
+│   ├── features.py     # Tabular feature engineering + imputation
+│   ├── gradcam.py      # Grad-CAM saliency
+│   ├── cosmology.py    # z → distance conversions (comoving, light-travel, luminosity)
+│   └── Dockerfile
+├── frontend/           # Three.js 3D galaxy explorer
+│   └── src/
+│       ├── scene.js    # 3D scene (color = redshift, radius = distance)
+│       ├── api.js      # Fetch wrappers for the backend
+│       └── galaxyImage.js  # .npy → WebGL texture decoder
+├── scripts/            # Data pipeline + training utilities
+│   ├── freeze_catalog.py   # SDSS DR17 catalog pull
+│   ├── prepare_data.py     # Galaxy image cutout stamping (SciServer)
+│   └── train.py            # CNN + fusion training (Colab target)
+├── mlflow/             # Self-hosted MLflow tracking server (GCP VM)
+├── Makefile            # Single entrypoint for all workflows
+└── .env.sample         # Configuration template
+```
+
+---
+
+## Deployment
+
+```bash
+make deploy           # Build Docker image → push to Artifact Registry → deploy to Cloud Run
+```
+
+The frontend deploys automatically to GitHub Pages on every push to `main` that touches `frontend/`.
+
+---
+
+## Team
+
+Built at [Le Wagon](https://www.lewagon.com/) Data Science bootcamp, June 2026.
+
+| | |
+|---|---|
+| Jose Bagina | |
+| *[teammate]* | |
+| *[teammate]* | |
+| *[teammate]* | |
+| *[teammate]* | |
