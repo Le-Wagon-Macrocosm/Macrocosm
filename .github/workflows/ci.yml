@@ -15,6 +15,21 @@ jobs:
         with: { python-version: "3.12" }
       - name: Install backend deps
         run: pip install -r backend/requirements.txt pytest httpx   # httpx -> fastapi TestClient
+      # The fusion stack loads real artifacts at app startup (lifespan), so the API tests need them.
+      # Pull from GCS with the same SA key the deploy job uses (Storage Object Viewer on the bucket).
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Download model artifacts from GCS
+        run: |
+          set -euo pipefail
+          mkdir -p models
+          for f in baseline_stack_v4.pkl photoz_cnn_v4.h5 fusion_v4.keras tabular_medians_v4.npy; do
+            gcloud storage cp "gs://macrocosm-lewagon/models/$f" "models/$f"
+          done
+          ls -lh models/
       - name: Import smoke test
         run: python -c "import backend.main"
       - name: Unit tests
