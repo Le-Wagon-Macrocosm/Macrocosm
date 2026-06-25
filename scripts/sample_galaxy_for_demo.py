@@ -14,8 +14,11 @@ from astropy.io import fits
 from astropy.nddata import Cutout2D
 from astropy.wcs import WCS, FITSFixedWarning
 from astropy.coordinates import SkyCoord
+from astroquery.sdss import SDSS
 import astropy.units as u
 import warnings
+import argparse
+
 
 
 """
@@ -23,8 +26,8 @@ Need to change the CATALOG and HARD_PATH variables to point to the correct locat
 The default stamp size is set to 64 pixels, but you can adjust it as needed.
 The script will download stamps for a sample of galaxies and save them as .npy files in the current working directory.
 """
-CATALOG = "/path/to/catalog_v4.parquet"
-HARD_PATH = "../hard_objids.csv"
+CATALOG = "/path/to/data_sample_v4.5_catalog_v4.parquet"
+HARD_PATH = "/path/to/hard_objids.csv"
 DEFAULT_STAMP_SIZE = 64
 
 FEATS = [
@@ -130,6 +133,7 @@ def metrics(y_true, y_pred):
 warnings.simplefilter('ignore', FITSFixedWarning)   # silence harmless WCS warnings
 
 def cutout(ra, dec, band, size=64):
+    print('yo iam')
     # 1. Define sky position
     pos_sky = SkyCoord(ra, dec, unit='deg')
     # 2. Get image from SDSS
@@ -157,6 +161,7 @@ def cutout(ra, dec, band, size=64):
     # 5. Create the cutout
     # Pass the pixel position directly.
     # Use limit_rounding_method='round' or 'floor'/'ceil' if needed, but explicit pixels usually avoid this.
+
     try:
         cutout_obj = Cutout2D(
             data=data,
@@ -167,6 +172,7 @@ def cutout(ra, dec, band, size=64):
             fill_value=0           # Value for pixels outside original image
         )
         return cutout_obj.data.astype('float32')
+
     except Exception as e:
         # If it still fails, it might be due to the position being completely outside the image
         raise ValueError(f"Failed to create cutout at pixel pos {pix_pos}: {e}")
@@ -189,10 +195,12 @@ def download_and_save_stamps(df, obj_ids, output_dir, size=DEFAULT_STAMP_SIZE, s
         except Exception as exc:
             print(f"Failed to download stamp for objID {obj_id}: {exc}")
             failed.append(obj_id)
+            pass
+
     return failed
 
-
-def main():
+def main(catalog, hard):
+    # TO DO: Add path to catalog & hard
     hard_ids = load_hard_set(HARD_PATH)
     print(f"hard set: {len(hard_ids)} galaxies")
 
@@ -200,17 +208,27 @@ def main():
     sample_galaxy_df = D.sample(n=10)
     sample_galaxy_df = round_radius_columns(sample_galaxy_df)
 
-    write_to_json(Path.cwd() / "sample_galaxies.jsonl", sample_galaxy_df)
 
     obj_ids = sample_galaxy_df["objid"].tolist()
     session = build_session()
-    get_stamps = download_and_save_stamps(sample_galaxy_df, obj_ids, output_dir=Path.cwd(), size=DEFAULT_STAMP_SIZE, session=session)
+    failed = download_and_save_stamps(sample_galaxy_df, obj_ids, output_dir=Path.cwd(), size=DEFAULT_STAMP_SIZE, session=session)
 
-    if get_stamps:
-        print(f"Downloaded {len(obj_ids)} stamps successfully")
+    if failed:
+        print(f"{len(failed)} stamp downloads failed. Skipped in JSON download")
     else:
-        print(f"{len(get_stamps)} stamp downloads failed")
+         print(f"Downloaded {len(obj_ids)} stamps successfully")
+
+    if len(failed) > 0:
+        sample_galaxy = sample_galaxy_df.set_index('objid', inplace=True).drop(failed, inplace=True)
+
+    write_to_json(Path.cwd() / "sample_galaxies.json", sample_galaxy)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--catalog', required=True)
+    parser.add_argument('--hard', required=True)
+
+    args = parser.parse_args()
+
+    main(args.catalog, args.hard)
