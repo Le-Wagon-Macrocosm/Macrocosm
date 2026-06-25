@@ -22,7 +22,7 @@ export function gradcamCanvas(npyBuf, heatmap, size = 220) {
 
   // 1) galaxy base, upscaled to the display size
   try {
-    const base = npyToCanvas(npyBuf)
+    const base = npyToCanvas(npyBuf, 24)   // center 24×24 the model saw -> heatmap aligns pixel-for-pixel
     ctx.drawImage(base, 0, 0, size, size)
   } catch {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, size, size)

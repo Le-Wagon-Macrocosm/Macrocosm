@@ -28,16 +28,18 @@
           <h2>Your galaxy</h2>
           <label class="file">ugriz cutout (.npy)
             <input id="file" type="file" accept=".npy" required />
-            <small>(64×64×5) float32</small>
+            <small>(n×n×5, n≥24) float32 · center-cropped to 24×24</small>
           </label>
           <div class="grid2">
             <label>RA<input id="ra" type="number" value="180" step="any" /></label>
             <label>Dec<input id="dec" type="number" value="0" step="any" /></label>
           </div>
-          <details>
-            <summary>Tabular features (optional → real baseline)</summary>
-            <div id="tabular" class="grid2"><!-- inputs injected by main.js --></div>
-          </details>
+          <label class="usetab">
+            <input type="checkbox" id="use-tabular" />
+            <span>Add tabular features → fusion</span>
+          </label>
+          <small class="tabhint">Off: image-only (CNN + MDN). On: fusion with the features below.</small>
+          <div id="tabular" hidden><!-- rows injected by main.js: absent checkbox + value + slider --></div>
           <div class="grid2">
             <button type="submit">Predict & place →</button>
             <button id="explain-btn" type="button">Explain (Grad-CAM)</button>

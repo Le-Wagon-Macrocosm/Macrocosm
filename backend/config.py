@@ -28,6 +28,9 @@ class Settings:
 
         self.TABULAR_FEATURES = ["dered_u","dered_g","dered_r","dered_i","dered_z","g-r","u-g","r-i","i-z","log_expRad_r","log_deVRad_r","log_petroRad_r","log_petroR50_r","log_petroR90_r","fracDeV_r","conc_r"]
         self.RAW_TABULAR_FIELDS = ["dered_u","dered_g","dered_r","dered_i","dered_z","expRad_r","deVRad_r","petroRad_r","petroR50_r","petroR90_r","fracDeV_r"]
+        # if more than this many RAW tabular fields are absent, the tabular signal is too sparse
+        # to help -> skip fusion and serve the image-only CNN+MDN instead.
+        self.MAX_ABSENT_TABULAR = int(os.environ.get("MAX_ABSENT_TABULAR", 3))
         self.CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
         self.TITLE = "Macrocosm photo-z API"
 

@@ -84,6 +84,15 @@ def mdn_point(raw):
     return mu[np.arange(len(mu)), pi.argmax(1)]
 
 
+def predict_z_image_only(images):
+    """CNN-only photo-z — the CNN's own MDN head, no tabular/fusion (used when no tabular is sent).
+    images: (n,CROP,CROP,5) preprocessed (p99). -> list[float] redshift (expm1 of the MDN point)."""
+    _, cnn, _ = get_models()
+    raw = cnn.predict(images, verbose=0)                        # (n,15) = [pi(5), mu(5), sigma(5)]
+    z = np.expm1(mdn_point(raw))
+    return [float(v) for v in z]
+
+
 def predict_z(images, tabular=None):
     """images: (n,CROP,CROP,5) preprocessed. tabular: (X16, mask) | X16 (16,)/(n,16) | None.
     -> list[float] redshift. Fusion over [base | mask | emb]; MDN point estimate; expm1 back to z."""

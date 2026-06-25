@@ -34,9 +34,20 @@ function bandPercentile(data, c, band, n, p) {
 const Q = 8
 
 // ArrayBuffer of a (H,W,5) ugriz cutout -> an HTMLCanvasElement with the Lupton gri composite
-// (black sky). Shared by the 3D texture and the Grad-CAM overlay so both show the same image.
-export function npyToCanvas(buf) {
-  const { h, w, c, data } = parseNpy(buf)
+// (black sky). Shared by the 3D texture and the Grad-CAM overlay.
+// crop (optional): center-crop to crop×crop first — used by Grad-CAM so the base image matches
+// exactly what the backend feeds the model (center-crop to CROP), keeping the heatmap aligned.
+export function npyToCanvas(buf, crop = null) {
+  let { h, w, c, data } = parseNpy(buf)
+  if (crop && (h > crop || w > crop)) {            // center-crop to crop×crop (what the model sees)
+    const sh = (h - crop) >> 1, sw = (w - crop) >> 1
+    const out = new Float32Array(crop * crop * c)
+    for (let y = 0; y < crop; y++)
+      for (let x = 0; x < crop; x++)
+        for (let b = 0; b < c; b++)
+          out[(y * crop + x) * c + b] = data[((sh + y) * w + (sw + x)) * c + b]
+    data = out; h = w = crop
+  }
   const n = h * w
   // per-band normalize: 1 / (99th percentile) for each of u, g, r, i, z
   const inv = []
