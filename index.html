@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Macrocosm — photo-z 3D explorer</title>
+    <script type="module" crossorigin src="./assets/index-DD62r54x.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-C2CC-irN.css">
+  </head>
+  <body>
+    <div id="app">
+      <div id="viewport">
+        <canvas id="scene"></canvas>
+        <!-- dynamic scale bar (updates with zoom + distance mode) -->
+        <div id="scalebar"><span>1 Gly</span></div>
+        <!-- distance-measure selector -->
+        <div id="distmode">
+          <label><input type="radio" name="dist" value="comoving" checked /> Comoving</label>
+          <label><input type="radio" name="dist" value="lightTravel" /> Light-travel</label>
+          <label><input type="radio" name="dist" value="luminosity" /> Luminosity</label>
+        </div>
+      </div>
+
+      <aside id="panel">
+        <h1>Macrocosm <span>photo-z explorer</span></h1>
+        <p id="health" class="badge">backend: …</p>
+        <button id="explore">Explore sample galaxies →</button>
+
+        <form id="predict-form" class="card">
+          <h2>Your galaxy</h2>
+          <label class="file">ugriz cutout (.npy)
+            <input id="file" type="file" accept=".npy" required />
+            <small>(n×n×5, n≥24) float32 · center-cropped to 24×24</small>
+          </label>
+          <div class="grid2">
+            <label>RA<input id="ra" type="number" value="180" step="any" /></label>
+            <label>Dec<input id="dec" type="number" value="0" step="any" /></label>
+          </div>
+          <label class="usetab">
+            <input type="checkbox" id="use-tabular" />
+            <span>Add tabular features → fusion</span>
+          </label>
+          <small class="tabhint">Off: image-only (CNN + MDN). On: fusion with the features below.</small>
+          <div id="tab-json-box" hidden>
+            <textarea id="tab-json" rows="2" placeholder='Paste a JSON of features, e.g. {"dered_u":19.2,"dered_g":18.1,...}  — fields not in it are marked absent'></textarea>
+            <button id="tab-json-apply" type="button" class="ghost">Confirm → fill fields</button>
+          </div>
+          <div id="tabular" hidden><!-- rows injected by main.js: absent checkbox + value + slider --></div>
+          <div class="grid2">
+            <button type="submit">Predict & place →</button>
+            <button id="explain-btn" type="button">Explain (Grad-CAM)</button>
+          </div>
+        </form>
+
+        <p id="status" class="status">Pick "Explore", or upload your own cutout.</p>
+        <div id="gradcam" class="gradcam"></div>
+        <ol id="results"></ol>
+        <footer>Color = redshift (blue→low). Radius = chosen distance from the yellow observer.</footer>
+      </aside>
+    </div>
+  </body>
+</html>
