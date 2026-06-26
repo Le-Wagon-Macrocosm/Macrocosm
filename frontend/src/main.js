@@ -57,21 +57,33 @@ function buildTabularInputs() {
 
   // paste-JSON -> fill: set each field from the JSON; fields not present are marked absent.
   $('#tab-json-apply').addEventListener('click', () => {
+    const raw = $('#tab-json').value.trim()
     let obj
-    try { obj = JSON.parse($('#tab-json').value) } catch (err) { return log(`bad JSON: ${err.message}`) }
+    try { obj = JSON.parse(raw) }
+    catch {                                                    // tolerate Python-dict single quotes
+      try { obj = JSON.parse(raw.replace(/'/g, '"')) }
+      catch (err) { return log(`bad JSON: ${err.message}`) }
+    }
     if (!obj || typeof obj !== 'object') return log('JSON must be an object of { field: value }')
+    // each raw field can arrive as itself, OR as the engineered log_<field> (log1p) -> invert via expm1
+    const valFor = (k) => {
+      if (obj[k] != null && isFinite(obj[k])) return +obj[k]
+      const lk = 'log_' + k
+      if (obj[lk] != null && isFinite(obj[lk])) return Math.expm1(+obj[lk])
+      return null
+    }
     let filled = 0
     document.querySelectorAll('#tabular .tabrow').forEach(row => {
       const num = row.querySelector('.tabnum'), rng = row.querySelector('.tabrange'), abs = row.querySelector('.abs')
-      const v = obj[num.dataset.tab]
-      const present = v !== undefined && v !== null && isFinite(v)
+      const v = valFor(num.dataset.tab)
+      const present = v !== null
       abs.checked = !present
       row.classList.toggle('absent', !present)
       num.disabled = rng.disabled = !present
-      if (present) { num.value = v; rng.value = v; filled++ }   // rng clamps to its [min,max]
+      if (present) { const r = +v.toFixed(4); num.value = r; rng.value = r; filled++ }  // rng clamps to [min,max]
     })
-    if (obj.ra !== undefined && isFinite(obj.ra)) $('#ra').value = obj.ra     // bonus: also fill RA/Dec if present
-    if (obj.dec !== undefined && isFinite(obj.dec)) $('#dec').value = obj.dec
+    if (obj.ra != null && isFinite(obj.ra)) $('#ra').value = obj.ra     // bonus: also fill RA/Dec if present
+    if (obj.dec != null && isFinite(obj.dec)) $('#dec').value = obj.dec
     log(`filled ${filled} tabular field${filled === 1 ? '' : 's'} from JSON${filled < TAB_FIELDS.length ? ` (${TAB_FIELDS.length - filled} marked absent)` : ''}`)
   })
 }
@@ -116,6 +128,18 @@ async function exploreSamples() {
 $('#explore').addEventListener('click', () => {
   $('#explore').disabled = true
   exploreSamples().catch((e) => log(`error: ${e.message}`)).finally(() => { $('#explore').disabled = false })
+})
+
+// --- auto-orbit: center on the observer and slowly spin; any drag/pan/zoom stops it ---
+const orbitBtn = $('#auto-orbit')
+const setOrbitUI = (on) => {
+  orbitBtn.classList.toggle('active', on)
+  orbitBtn.textContent = on ? '⏸ Stop orbit' : '⟳ Auto-orbit'
+}
+viz.onAutoOrbitEnd(() => setOrbitUI(false))   // a user interaction in the viewport interrupted it
+orbitBtn.addEventListener('click', () => {
+  if (viz.isAutoOrbit()) { viz.stopAutoOrbit(); setOrbitUI(false) }
+  else { viz.startAutoOrbit(); setOrbitUI(true) }
 })
 
 // task-05c: predict the user's own .npy cutout (+ optional ra/dec/tabular).

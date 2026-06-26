@@ -30,6 +30,12 @@ export function createScene(canvas, scaleBarEl) {
   camera.position.set(0, 10, 30)
   const controls = new OrbitControls(camera, canvas)
   controls.enableDamping = true
+  controls.autoRotateSpeed = 0.6                 // slow cinematic spin when auto-orbit is on
+  let autoOrbitEndCb = null
+  // any user rotate/pan/zoom in the viewport interrupts auto-orbit (OrbitControls fires 'start')
+  controls.addEventListener('start', () => {
+    if (controls.autoRotate) { controls.autoRotate = false; if (autoOrbitEndCb) autoOrbitEndCb() }
+  })
 
   // starfield + observer at the origin (given)
   const starPos = new Float32Array(1800 * 3)
@@ -120,5 +126,10 @@ export function createScene(canvas, scaleBarEl) {
     },
     setDistanceMode(fn) { distanceFn = fn; placeAll() },
     clear() { galaxies.clear(); rings.clear(); items = []; controls.target.set(0, 0, 0) },
+    // fix the screen centre on the observation centre (the observer at the origin) and slowly orbit
+    startAutoOrbit() { controls.target.set(0, 0, 0); controls.autoRotate = true },
+    stopAutoOrbit() { controls.autoRotate = false },
+    isAutoOrbit() { return controls.autoRotate },
+    onAutoOrbitEnd(cb) { autoOrbitEndCb = cb },   // called when a user interaction interrupts it
   }
 }
