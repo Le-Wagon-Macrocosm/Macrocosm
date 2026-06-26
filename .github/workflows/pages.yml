@@ -1,52 +1,66 @@
-name: Deploy frontend (GitHub Pages)
+name: Deploy frontend (GitHub Pages, multi-branch)
 
-# Builds frontend/ with Vite and publishes dist/ to GitHub Pages. The backend is
-# deployed separately (Cloud Run, see ci.yml); the frontend calls it via src/config.js
-# (VITE_API_BASE, defaults to the Cloud Run URL; CORS is open).
+# Publishes frontend/ to a single `gh-pages` branch, one folder per source branch:
+#   main         -> gh-pages root         -> https://<org>.github.io/<repo>/
+#   experimental -> gh-pages/experimental  -> https://<org>.github.io/<repo>/experimental/
+# `keep_files: true` means each branch's deploy preserves the OTHER branch's folder, so the
+# two coexist and deploy independently. Vite base is './' (relative), so the same build works
+# at the root OR under the /experimental/ subpath with no per-branch config.
+#
+# One-time setup in repo Settings -> Pages: Source = "Deploy from a branch", Branch = gh-pages / (root).
+# NOTE: this workflow file must exist ON the experimental branch too, or pushing experimental
+# won't trigger it (workflows run from the branch that was pushed).
 
 on:
   push:
-    branches: [main]
+    branches: [main, experimental]
     paths:
       - 'frontend/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write        # peaceiris pushes the built site to the gh-pages branch
 
-# one Pages deploy at a time; let a newer run cancel an in-progress one
+# don't let main and experimental deploys cancel each other (separate groups per branch)
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build        # vite base is './' -> works under /<repo>/ Pages path
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build       # vite base './' -> path-agnostic; works at root and /experimental/
+
+      - name: Choose publish folder for this branch
+        id: dest
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "dir=" >> "$GITHUB_OUTPUT"            # empty = gh-pages root
+          else
+            echo "dir=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"   # e.g. 'experimental'
+          fi
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/dist
+          destination_dir: ${{ steps.dest.outputs.dir }}
+          keep_files: true                            # preserve the other branch's folder
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: "deploy ${{ github.ref_name }} -> ${{ steps.dest.outputs.dir || 'root' }} (${{ github.sha }})"
