@@ -1,0 +1,602 @@
+[
+  {
+    "id": 0,
+    "name": "SDSS J120940.0+244653.2",
+    "npy": "samples/sample_00.npy",
+    "ra": 182.4166,
+    "dec": 24.7814,
+    "tabular": {
+      "dered_u": 19.4747,
+      "dered_g": 18.0109,
+      "dered_r": 17.3015,
+      "dered_i": 17.0195,
+      "dered_z": 16.8227,
+      "expRad_r": 3.6262,
+      "deVRad_r": 9.3217,
+      "petroRad_r": 7.2038,
+      "petroR50_r": 3.3119,
+      "petroR90_r": 8.8716,
+      "fracDeV_r": 0.1852
+    }
+  },
+  {
+    "id": 1,
+    "name": "SDSS J155103.5+210913.2",
+    "npy": "samples/sample_01.npy",
+    "ra": 237.7645,
+    "dec": 21.1537,
+    "tabular": {
+      "dered_u": 18.9015,
+      "dered_g": 17.7474,
+      "dered_r": 17.3962,
+      "dered_i": 17.1925,
+      "dered_z": 17.118,
+      "expRad_r": 1.2564,
+      "deVRad_r": 1.9353,
+      "petroRad_r": 4.271,
+      "petroR50_r": 1.8323,
+      "petroR90_r": 5.2144,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 2,
+    "name": "SDSS J134934.7+250951.2",
+    "npy": "samples/sample_02.npy",
+    "ra": 207.3948,
+    "dec": 25.1642,
+    "tabular": {
+      "dered_u": 20.5026,
+      "dered_g": 18.6338,
+      "dered_r": 17.9169,
+      "dered_i": 17.4885,
+      "dered_z": 17.1864,
+      "expRad_r": 4.0019,
+      "deVRad_r": 8.682,
+      "petroRad_r": 5.3509,
+      "petroR50_r": 2.2675,
+      "petroR90_r": 4.8192,
+      "fracDeV_r": 0.0
+    }
+  },
+  {
+    "id": 3,
+    "name": "SDSS J002229.6-005137.2",
+    "npy": "samples/sample_03.npy",
+    "ra": 5.6233,
+    "dec": -0.8603,
+    "tabular": {
+      "dered_u": 17.8505,
+      "dered_g": 16.3433,
+      "dered_r": 15.6211,
+      "dered_i": 15.225,
+      "dered_z": 14.9791,
+      "expRad_r": 3.593,
+      "deVRad_r": 6.5259,
+      "petroRad_r": 7.6036,
+      "petroR50_r": 3.4472,
+      "petroR90_r": 8.2968,
+      "fracDeV_r": 0.6189
+    }
+  },
+  {
+    "id": 4,
+    "name": "SDSS J120620.1+183525.7",
+    "npy": "samples/sample_04.npy",
+    "ra": 181.5839,
+    "dec": 18.5905,
+    "tabular": {
+      "dered_u": 17.3636,
+      "dered_g": 15.5155,
+      "dered_r": 14.5934,
+      "dered_i": 14.1547,
+      "dered_z": 13.8073,
+      "expRad_r": 6.1658,
+      "deVRad_r": 12.3193,
+      "petroRad_r": 15.4793,
+      "petroR50_r": 6.5433,
+      "petroR90_r": 16.5395,
+      "fracDeV_r": 0.7786
+    }
+  },
+  {
+    "id": 5,
+    "name": "SDSS J134113.4+262933.2",
+    "npy": "samples/sample_05.npy",
+    "ra": 205.306,
+    "dec": 26.4926,
+    "tabular": {
+      "dered_u": 19.7492,
+      "dered_g": 17.8481,
+      "dered_r": 17.0281,
+      "dered_i": 16.6597,
+      "dered_z": 16.3661,
+      "expRad_r": 1.5833,
+      "deVRad_r": 2.3475,
+      "petroRad_r": 4.1328,
+      "petroR50_r": 1.7127,
+      "petroR90_r": 5.5014,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 6,
+    "name": "SDSS J133510.5+593812.7",
+    "npy": "samples/sample_06.npy",
+    "ra": 203.7936,
+    "dec": 59.6369,
+    "tabular": {
+      "dered_u": 19.3175,
+      "dered_g": 17.2898,
+      "dered_r": 16.3567,
+      "dered_i": 15.9283,
+      "dered_z": 15.5924,
+      "expRad_r": 1.595,
+      "deVRad_r": 1.9117,
+      "petroRad_r": 3.739,
+      "petroR50_r": 1.6691,
+      "petroR90_r": 4.3426,
+      "fracDeV_r": 0.8616
+    }
+  },
+  {
+    "id": 7,
+    "name": "SDSS J222232.4+072551.6",
+    "npy": "samples/sample_07.npy",
+    "ra": 335.6351,
+    "dec": 7.431,
+    "tabular": {
+      "dered_u": 19.0726,
+      "dered_g": 17.2343,
+      "dered_r": 16.368,
+      "dered_i": 15.9539,
+      "dered_z": 15.6163,
+      "expRad_r": 2.5332,
+      "deVRad_r": 4.4287,
+      "petroRad_r": 5.4493,
+      "petroR50_r": 2.4253,
+      "petroR90_r": 7.3559,
+      "fracDeV_r": 0.946
+    }
+  },
+  {
+    "id": 8,
+    "name": "SDSS J002856.8+004037.8",
+    "npy": "samples/sample_08.npy",
+    "ra": 7.2367,
+    "dec": 0.6772,
+    "tabular": {
+      "dered_u": 20.2257,
+      "dered_g": 17.989,
+      "dered_r": 16.9911,
+      "dered_i": 16.5974,
+      "dered_z": 16.0777,
+      "expRad_r": 1.0076,
+      "deVRad_r": 1.2464,
+      "petroRad_r": 2.9673,
+      "petroR50_r": 1.3337,
+      "petroR90_r": 3.6451,
+      "fracDeV_r": 0.994
+    }
+  },
+  {
+    "id": 9,
+    "name": "SDSS J002026.3-002925.4",
+    "npy": "samples/sample_09.npy",
+    "ra": 5.1096,
+    "dec": -0.4904,
+    "tabular": {
+      "dered_u": 20.3065,
+      "dered_g": 18.7777,
+      "dered_r": 17.9863,
+      "dered_i": 17.5874,
+      "dered_z": 17.3061,
+      "expRad_r": 0.6956,
+      "deVRad_r": 1.1654,
+      "petroRad_r": 12.2717,
+      "petroR50_r": 4.5358,
+      "petroR90_r": 21.0628,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 10,
+    "name": "SDSS J112124.6+221341.1",
+    "npy": "samples/sample_10.npy",
+    "ra": 170.3526,
+    "dec": 22.2281,
+    "tabular": {
+      "dered_u": 19.1439,
+      "dered_g": 17.8821,
+      "dered_r": 17.2301,
+      "dered_i": 16.857,
+      "dered_z": 16.6734,
+      "expRad_r": 2.5734,
+      "deVRad_r": 5.2078,
+      "petroRad_r": 4.6613,
+      "petroR50_r": 2.3531,
+      "petroR90_r": 4.8041,
+      "fracDeV_r": 0.1023
+    }
+  },
+  {
+    "id": 11,
+    "name": "SDSS J122505.9+632706.9",
+    "npy": "samples/sample_11.npy",
+    "ra": 186.2747,
+    "dec": 63.4519,
+    "tabular": {
+      "dered_u": 19.4021,
+      "dered_g": 17.9158,
+      "dered_r": 17.1211,
+      "dered_i": 16.7233,
+      "dered_z": 16.4555,
+      "expRad_r": 2.5744,
+      "deVRad_r": 5.1155,
+      "petroRad_r": 5.4319,
+      "petroR50_r": 2.5154,
+      "petroR90_r": 5.876,
+      "fracDeV_r": 0.3955
+    }
+  },
+  {
+    "id": 12,
+    "name": "SDSS J225756.1+000743.4",
+    "npy": "samples/sample_12.npy",
+    "ra": 344.4837,
+    "dec": 0.1287,
+    "tabular": {
+      "dered_u": 20.0817,
+      "dered_g": 17.9774,
+      "dered_r": 16.8662,
+      "dered_i": 16.3547,
+      "dered_z": 15.9169,
+      "expRad_r": 2.1789,
+      "deVRad_r": 4.0357,
+      "petroRad_r": 4.6266,
+      "petroR50_r": 2.0991,
+      "petroR90_r": 6.4002,
+      "fracDeV_r": 0.9161
+    }
+  },
+  {
+    "id": 13,
+    "name": "SDSS J080319.7+323036.3",
+    "npy": "samples/sample_13.npy",
+    "ra": 120.8322,
+    "dec": 32.5101,
+    "tabular": {
+      "dered_u": 19.4496,
+      "dered_g": 17.7845,
+      "dered_r": 16.8817,
+      "dered_i": 16.4856,
+      "dered_z": 16.185,
+      "expRad_r": 1.6263,
+      "deVRad_r": 2.6459,
+      "petroRad_r": 4.2032,
+      "petroR50_r": 1.8992,
+      "petroR90_r": 4.5689,
+      "fracDeV_r": 0.6529
+    }
+  },
+  {
+    "id": 14,
+    "name": "SDSS J231232.8+070644.8",
+    "npy": "samples/sample_14.npy",
+    "ra": 348.1366,
+    "dec": 7.1124,
+    "tabular": {
+      "dered_u": 19.2878,
+      "dered_g": 17.4679,
+      "dered_r": 16.5222,
+      "dered_i": 16.1229,
+      "dered_z": 15.801,
+      "expRad_r": 1.5758,
+      "deVRad_r": 2.9041,
+      "petroRad_r": 5.8959,
+      "petroR50_r": 2.4497,
+      "petroR90_r": 8.2416,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 15,
+    "name": "SDSS J013254.2+010241.0",
+    "npy": "samples/sample_15.npy",
+    "ra": 23.2259,
+    "dec": 1.0447,
+    "tabular": {
+      "dered_u": 20.2366,
+      "dered_g": 18.5261,
+      "dered_r": 17.5362,
+      "dered_i": 17.1274,
+      "dered_z": 16.831,
+      "expRad_r": 1.858,
+      "deVRad_r": 3.3564,
+      "petroRad_r": 4.7294,
+      "petroR50_r": 2.0961,
+      "petroR90_r": 5.4988,
+      "fracDeV_r": 0.8957
+    }
+  },
+  {
+    "id": 16,
+    "name": "SDSS J223719.6+010744.8",
+    "npy": "samples/sample_16.npy",
+    "ra": 339.3316,
+    "dec": 1.1291,
+    "tabular": {
+      "dered_u": 22.4935,
+      "dered_g": 20.5243,
+      "dered_r": 19.8359,
+      "dered_i": 19.5166,
+      "dered_z": 19.2056,
+      "expRad_r": 1.2691,
+      "deVRad_r": 1.7201,
+      "petroRad_r": 2.2782,
+      "petroR50_r": 1.0947,
+      "petroR90_r": 2.6763,
+      "fracDeV_r": 0.3102
+    }
+  },
+  {
+    "id": 17,
+    "name": "SDSS J124712.8+454304.6",
+    "npy": "samples/sample_17.npy",
+    "ra": 191.8034,
+    "dec": 45.7179,
+    "tabular": {
+      "dered_u": 20.4168,
+      "dered_g": 18.5271,
+      "dered_r": 17.4706,
+      "dered_i": 17.0279,
+      "dered_z": 16.6793,
+      "expRad_r": 1.0025,
+      "deVRad_r": 1.5136,
+      "petroRad_r": 4.3361,
+      "petroR50_r": 1.6288,
+      "petroR90_r": 4.6166,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 18,
+    "name": "SDSS J123353.8+041757.0",
+    "npy": "samples/sample_18.npy",
+    "ra": 188.4744,
+    "dec": 4.2992,
+    "tabular": {
+      "dered_u": 19.9369,
+      "dered_g": 18.4873,
+      "dered_r": 17.5872,
+      "dered_i": 17.1678,
+      "dered_z": 16.8492,
+      "expRad_r": 2.2849,
+      "deVRad_r": 4.5043,
+      "petroRad_r": 5.4159,
+      "petroR50_r": 2.4373,
+      "petroR90_r": 5.0966,
+      "fracDeV_r": 0.3117
+    }
+  },
+  {
+    "id": 19,
+    "name": "SDSS J141756.9+610558.1",
+    "npy": "samples/sample_19.npy",
+    "ra": 214.4872,
+    "dec": 61.0995,
+    "tabular": {
+      "dered_u": 20.5484,
+      "dered_g": 18.7202,
+      "dered_r": 17.6115,
+      "dered_i": 17.1724,
+      "dered_z": 16.821,
+      "expRad_r": 1.2409,
+      "deVRad_r": 1.6153,
+      "petroRad_r": 4.0931,
+      "petroR50_r": 1.8597,
+      "petroR90_r": 4.4414,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 20,
+    "name": "SDSS J144450.0+613852.6",
+    "npy": "samples/sample_20.npy",
+    "ra": 221.2084,
+    "dec": 61.6479,
+    "tabular": {
+      "dered_u": 19.1292,
+      "dered_g": 17.9044,
+      "dered_r": 17.0434,
+      "dered_i": 16.6048,
+      "dered_z": 16.3326,
+      "expRad_r": 1.9084,
+      "deVRad_r": 3.4915,
+      "petroRad_r": 5.2728,
+      "petroR50_r": 2.3661,
+      "petroR90_r": 5.8479,
+      "fracDeV_r": 0.6878
+    }
+  },
+  {
+    "id": 21,
+    "name": "SDSS J120012.2+121710.8",
+    "npy": "samples/sample_21.npy",
+    "ra": 180.0508,
+    "dec": 12.2863,
+    "tabular": {
+      "dered_u": 19.4681,
+      "dered_g": 18.2242,
+      "dered_r": 17.3384,
+      "dered_i": 16.9643,
+      "dered_z": 16.6517,
+      "expRad_r": 3.4108,
+      "deVRad_r": 8.9762,
+      "petroRad_r": 6.7667,
+      "petroR50_r": 3.353,
+      "petroR90_r": 7.0417,
+      "fracDeV_r": 0.0
+    }
+  },
+  {
+    "id": 22,
+    "name": "SDSS J115525.8+355018.5",
+    "npy": "samples/sample_22.npy",
+    "ra": 178.8576,
+    "dec": 35.8385,
+    "tabular": {
+      "dered_u": 20.6815,
+      "dered_g": 18.9395,
+      "dered_r": 17.7163,
+      "dered_i": 17.2096,
+      "dered_z": 16.917,
+      "expRad_r": 1.2159,
+      "deVRad_r": 2.0078,
+      "petroRad_r": 4.4087,
+      "petroR50_r": 1.9465,
+      "petroR90_r": 5.9126,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 23,
+    "name": "SDSS J025917.7-004316.3",
+    "npy": "samples/sample_23.npy",
+    "ra": 44.8237,
+    "dec": -0.7212,
+    "tabular": {
+      "dered_u": 20.6619,
+      "dered_g": 18.698,
+      "dered_r": 17.5194,
+      "dered_i": 17.0967,
+      "dered_z": 16.8033,
+      "expRad_r": 0.7841,
+      "deVRad_r": 1.1829,
+      "petroRad_r": 3.2311,
+      "petroR50_r": 1.3556,
+      "petroR90_r": 4.5295,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 24,
+    "name": "SDSS J002610.7+134249.9",
+    "npy": "samples/sample_24.npy",
+    "ra": 6.5448,
+    "dec": 13.7139,
+    "tabular": {
+      "dered_u": 21.0691,
+      "dered_g": 19.0861,
+      "dered_r": 17.5905,
+      "dered_i": 17.0638,
+      "dered_z": 16.7106,
+      "expRad_r": 1.1737,
+      "deVRad_r": 2.0145,
+      "petroRad_r": 4.4475,
+      "petroR50_r": 1.892,
+      "petroR90_r": 6.0568,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 25,
+    "name": "SDSS J220112.0+093739.2",
+    "npy": "samples/sample_25.npy",
+    "ra": 330.3001,
+    "dec": 9.6276,
+    "tabular": {
+      "dered_u": 22.4704,
+      "dered_g": 20.749,
+      "dered_r": 19.641,
+      "dered_i": 18.9464,
+      "dered_z": 18.4338,
+      "expRad_r": 2.0152,
+      "deVRad_r": 4.5413,
+      "petroRad_r": 2.97,
+      "petroR50_r": 1.714,
+      "petroR90_r": 4.9682,
+      "fracDeV_r": 0.8251
+    }
+  },
+  {
+    "id": 26,
+    "name": "SDSS J082112.5+511125.3",
+    "npy": "samples/sample_26.npy",
+    "ra": 125.302,
+    "dec": 51.1904,
+    "tabular": {
+      "dered_u": 25.2583,
+      "dered_g": 21.3193,
+      "dered_r": 20.2706,
+      "dered_i": 19.5036,
+      "dered_z": 19.039,
+      "expRad_r": 1.0349,
+      "deVRad_r": 1.2567,
+      "petroRad_r": 2.4011,
+      "petroR50_r": 1.118,
+      "petroR90_r": 2.2646,
+      "fracDeV_r": 0.0
+    }
+  },
+  {
+    "id": 27,
+    "name": "SDSS J014620.3-082255.8",
+    "npy": "samples/sample_27.npy",
+    "ra": 26.5848,
+    "dec": -8.3822,
+    "tabular": {
+      "dered_u": 21.2364,
+      "dered_g": 19.1395,
+      "dered_r": 17.6031,
+      "dered_i": 17.0135,
+      "dered_z": 16.6335,
+      "expRad_r": 1.3059,
+      "deVRad_r": 2.2132,
+      "petroRad_r": 4.577,
+      "petroR50_r": 1.9612,
+      "petroR90_r": 5.3152,
+      "fracDeV_r": 0.9188
+    }
+  },
+  {
+    "id": 28,
+    "name": "SDSS J112608.8+530304.1",
+    "npy": "samples/sample_28.npy",
+    "ra": 171.5368,
+    "dec": 53.0511,
+    "tabular": {
+      "dered_u": 21.8703,
+      "dered_g": 19.8575,
+      "dered_r": 18.1496,
+      "dered_i": 17.531,
+      "dered_z": 17.1672,
+      "expRad_r": 1.547,
+      "deVRad_r": 2.7184,
+      "petroRad_r": 4.8469,
+      "petroR50_r": 2.1838,
+      "petroR90_r": 6.4524,
+      "fracDeV_r": 1.0
+    }
+  },
+  {
+    "id": 29,
+    "name": "SDSS J111916.7+425054.0",
+    "npy": "samples/sample_29.npy",
+    "ra": 169.8196,
+    "dec": 42.8483,
+    "tabular": {
+      "dered_u": 23.2437,
+      "dered_g": 20.7929,
+      "dered_r": 19.1183,
+      "dered_i": 18.4867,
+      "dered_z": 18.068,
+      "expRad_r": 0.8324,
+      "deVRad_r": 1.1811,
+      "petroRad_r": 2.8244,
+      "petroR50_r": 1.3493,
+      "petroR90_r": 3.5788,
+      "fracDeV_r": 1.0
+    }
+  }
+]
